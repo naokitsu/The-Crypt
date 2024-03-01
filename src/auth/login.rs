@@ -1,8 +1,15 @@
-use rocket::http::{ContentType, Status};
+use diesel::RunQueryDsl;
 use rocket::serde::json::Json;
 use crate::auth::objects::Error;
-
+use crate::database;
+use crate::schema::users;
 use rocket::serde::Deserialize;
+use rocket_db_pools::Connection;
+use crate::database::{AuthDatabase, Db};
+use rocket_db_pools::diesel::{prelude::*};
+use uuid::Uuid;
+
+
 
 #[derive(Deserialize, Debug, Clone)]
 #[serde(crate = "rocket::serde")]
@@ -12,19 +19,28 @@ pub struct LoginRequest<'a> {
 }
 
 #[post("/login", format = "json", data = "<login_request>")]
-pub(super) fn login(login_request: Option<Json<LoginRequest>>) -> Result<String, Error> {
-    if let Some(x) = login_request {
-        Ok(format!("{}:{}", x.username, x.password))
-    } else {
-        Err(Error::BadRequest("Missing username or password".to_string()))
-    }
+pub(super) async fn login(login_request: Option<Json<LoginRequest<'_>>>, mut db: Connection<Db>) -> Result<String, Error> {
+    use crate::schema::users::*;
+    let login_request = login_request.ok_or(Error::BadRequest("Missing username or password".to_string()))?;
+
+    let token = db.login(login_request.username, login_request.password).await.map_err(|err| match err {
+        database::LoginError::NotFound => Error::Unauthorized("User not found".to_string()),
+        database::LoginError::IncorrectPassword => Error::Unauthorized("Wrong password".to_string()),
+        database::LoginError::InternalError => Error::InternalServerError("Internal error".to_string()),
+    })?;
+
+    Ok(format!("{}:{}:{:?}", login_request.username, login_request.password, token))
 }
 
 #[post("/register", format = "json", data = "<login_request>")]
-pub(super) fn register(login_request: Option<Json<LoginRequest>>) -> Result<String, Error> {
-    if let Some(x) = login_request {
-        Ok(format!("{}:{}", x.username, x.password))
-    } else {
-        Err(Error::BadRequest("Missing username or password".to_string()))
-    }
+pub(super) async fn register(login_request: Option<Json<LoginRequest<'_>>>, mut db: Connection<Db>) -> Result<String, Error> {
+    use crate::schema::users::*;
+    let login_request = login_request.ok_or(Error::BadRequest("Missing username or password".to_string()))?;
+
+    let token = db.register(login_request.username, login_request.password).await.map_err(|err| match err {
+        database::RegisterError::AlreadyInUse => Error::Unauthorized("User already in use".to_string()),
+        database::RegisterError::InternalError => Error::InternalServerError("Internal error".to_string()),
+    })?;
+
+    Ok(format!("{}:{}:{:?}", login_request.username, login_request.password, token))
 }
