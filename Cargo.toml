@@ -13,6 +13,7 @@ serde_json = "1.0.114"
 diesel_migrations = "2.1.0"
 uuid = { version = "1.7.0", features = ["serde", "v4"] }
 dotenv = "0.15.0"
+rocket_db_pools = { version = "0.1.0", default-features = false, features = ["diesel_postgres"] }
 
 [dependencies.rocket_contrib]
 version = "0.4.1"

@@ -1,9 +1,7 @@
 mod login;
 mod objects;
 
-use std::fmt;
 use std::fmt::Display;
-use rocket::Build;
 use rocket::http::uri::Origin;
 
 
@@ -14,7 +12,7 @@ pub trait AuthService {
             B::Error: Display;
 }
 
-impl AuthService for rocket::Rocket<Build> {
+impl AuthService for rocket::Rocket<rocket::Build> {
     fn mount_auth_service<'a, B>(self, base: B) -> Self
         where B: TryInto<Origin<'a>> + Clone + Display, B::Error: Display
     {

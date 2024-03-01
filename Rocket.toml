@@ -1,0 +1,2 @@
+[default.databases.chat_app]
+url = "postgresql://chat_app:test_chat_app@localhost/chat_app"
