@@ -29,7 +29,7 @@ pub(super) async fn login(login_request: Option<Json<LoginRequest<'_>>>, mut db:
         database::LoginError::InternalError => Error::InternalServerError("Internal error".to_string()),
     })?;
 
-    Ok(format!("{}:{}:{:?}", login_request.username, login_request.password, token))
+    Ok(token)
 }
 
 #[post("/register", format = "json", data = "<login_request>")]
@@ -42,5 +42,7 @@ pub(super) async fn register(login_request: Option<Json<LoginRequest<'_>>>, mut 
         database::RegisterError::InternalError => Error::InternalServerError("Internal error".to_string()),
     })?;
 
-    Ok(format!("{}:{}:{:?}", login_request.username, login_request.password, token))
+    Ok(token)
 }
+
+#[post("/check-token", data = "<login_request>")]
