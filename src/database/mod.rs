@@ -4,6 +4,7 @@ use diesel::RunQueryDsl;
 use rocket::Rocket;
 use rocket_db_pools::{Database};
 use rocket_db_pools::diesel::{self, prelude::*};
+use serde::Serialize;
 use crate::schema;
 
 const SALT_SIZE: usize = 16;
@@ -32,15 +33,16 @@ pub trait AuthDatabase {
     async fn login(&mut self, login: &str, password: &str) -> Result<String, LoginError>;
     async fn register(&mut self, login: &str, password: &str) -> Result<String, RegisterError>;
     async fn generate_login_token(&mut self, user: uuid::Uuid) -> Result<String, TokenError>;
+    async fn verify_login_token(&mut self, login_token: &str) -> Result<User, TokenError>;
 }
 
-#[derive(Queryable, PartialEq, Debug)]
-pub struct User{
+#[derive(Queryable, PartialEq, Debug, Serialize)]
+pub struct User {
     id: uuid::Uuid,
     username: String,
-    salted_hash: Vec<u8>,
-}
+    salted_hash: Vec<u8>, // TODO: I should move salted_hash from the users table into separate one
 
+}
 impl AuthDatabase for rocket_db_pools::Connection<Db> {
     async fn login(&mut self, login: &str, password: &str) -> Result<String, LoginError> {
         let (user_salted_hash, user_uuid) = schema::users::table
@@ -116,6 +118,16 @@ impl AuthDatabase for rocket_db_pools::Connection<Db> {
             Err(TokenError::InternalError)
         }
     }
+
+    async fn verify_login_token(&mut self, login_token: &str) -> Result<User, TokenError> {
+        return schema::users::table
+            .inner_join(schema::sessions::table.on(schema::users::id.eq(schema::sessions::user_id)))
+            .filter(schema::sessions::id.eq(login_token))
+            .select(schema::users::all_columns)
+            .first::<User>(self)
+            .await
+            .map_err(|_| TokenError::InvalidToken)
+    }
 }
 
 pub enum LoginError {
@@ -129,6 +141,7 @@ pub enum RegisterError {
     InternalError,
 }
 
-enum TokenError {
+pub enum TokenError {
+    InvalidToken,
     InternalError,
 }

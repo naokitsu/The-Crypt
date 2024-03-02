@@ -45,4 +45,7 @@ pub(super) async fn register(login_request: Option<Json<LoginRequest<'_>>>, mut 
     Ok(token)
 }
 
-#[post("/check-token", data = "<login_request>")]
+#[get("/me")]
+pub(super) async fn me(user: database::User) -> Json<database::User> {
+    Json(user)
+}
