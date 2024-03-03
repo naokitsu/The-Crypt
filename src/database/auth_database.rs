@@ -8,6 +8,7 @@ use crate::models::token::Token;
 use crate::models::user::User;
 use super::cryptography;
 use crate::schema;
+use crate::schema::sessions;
 
 pub(crate) trait AuthDatabase {
     async fn login(&mut self, login: &str, password: &str) -> Result<Token, LoginError>;
@@ -32,11 +33,12 @@ impl From<TokenGenerateError> for LoginError {
 impl AuthDatabase for rocket_db_pools::Connection<Db> {
     async fn login(&mut self, login: &str, password: &str) -> Result<Token, LoginError> {
         use rocket_db_pools::diesel::prelude::*;
-        use schema::users::{self, dsl::*};
+        use schema::{users, secrets};
 
         let (user_salted_hash, user_uuid) = users::table
-            .select((salted_hash, id))
-            .filter(username.eq(login))
+            .inner_join(secrets::table)
+            .select((secrets::salted_hash, users::id))
+            .filter(users::username.eq(login))
             .first::<(Vec<u8>, uuid::Uuid)>(self)
             .await
             .map_err(|err| match err {
@@ -58,17 +60,16 @@ impl AuthDatabase for rocket_db_pools::Connection<Db> {
 
     async fn register(&mut self, login: &str, password: &str) -> Result<Token, RegisterError> {
         use rocket_db_pools::diesel::prelude::*;
-        use schema::users::{self, dsl::*};
+        use schema::{users, secrets};
 
         let salt_hash = cryptography::hash_password(password.as_bytes())
             .map_err(|_| RegisterError::InternalServerError)?;
 
         let user_uuid = diesel::insert_into(users::table)
             .values((
-                username.eq(login),
-                salted_hash.eq(salt_hash),
+                users::username.eq(login),
             ))
-            .returning(id)
+            .returning(users::id)
             .get_result(self)
             .await
             .map_err(|err| match err {
@@ -76,6 +77,15 @@ impl AuthDatabase for rocket_db_pools::Connection<Db> {
                     RegisterError::Conflict,
                 _ => RegisterError::InternalServerError,
             })?;
+
+        diesel::insert_into(secrets::table)
+            .values((
+                secrets::user_id.eq(user_uuid),
+                secrets::salted_hash.eq(salt_hash),
+            ))
+            .execute(self)
+            .await
+            .map_err(|_| RegisterError::InternalServerError)?;
 
         self
             .generate_token(user_uuid)
@@ -114,7 +124,7 @@ impl AuthDatabase for rocket_db_pools::Connection<Db> {
         use schema::users::{self};
 
         users::table
-            .inner_join(sessions::table.on(users::id.eq(users::id)))
+            .inner_join(sessions::table)
             .filter(sessions::id.eq(login_token))
             .select(users::all_columns)
             .first::<User>(self)

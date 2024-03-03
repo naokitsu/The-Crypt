@@ -18,7 +18,6 @@ use crate::models::login_request::LoginError;
 pub struct User {
     pub id: uuid::Uuid,
     pub username: String,
-    pub salted_hash: Vec<u8>,
 }
 
 #[async_trait]
