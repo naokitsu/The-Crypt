@@ -1,15 +1,11 @@
 use std::io::Write;
-use diesel::result::Error;
 use diesel::RunQueryDsl;
 use rocket::Rocket;
 use rocket_db_pools::{Database};
 use rocket_db_pools::diesel::{self, prelude::*};
 use serde::Serialize;
+use crate::database::cryptography::SALT_SIZE;
 use crate::schema;
-
-const SALT_SIZE: usize = 16;
-const HASH_SIZE: usize = 32;
-const SALTED_SIZE: usize = SALT_SIZE + HASH_SIZE;
 
 mod cryptography;
 
@@ -41,7 +37,6 @@ pub struct User {
     id: uuid::Uuid,
     username: String,
     salted_hash: Vec<u8>, // TODO: I should move salted_hash from the users table into separate one
-
 }
 impl AuthDatabase for rocket_db_pools::Connection<Db> {
     async fn login(&mut self, login: &str, password: &str) -> Result<String, LoginError> {
