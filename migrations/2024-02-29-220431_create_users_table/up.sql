@@ -2,7 +2,8 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE TABLE users (
     id UUID DEFAULT uuid_generate_v4() NOT NULL,
-    username VARCHAR(64) NOT NULL
+    username VARCHAR(64) NOT NULL,
+    is_admin BOOLEAN NOT NULL DEFAULT false
     /*salted_hash bytea NOT NULL*/
     /*
     I do not want to store such sensitive data inside users since these entries are quite often get deserialized into

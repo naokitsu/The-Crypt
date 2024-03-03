@@ -28,3 +28,4 @@ pub(super) async fn register(login_request: Json<RegisterRequest<'_>>, mut db: C
 pub(super) async fn me(user: Result<User, UserError>) -> Result<User, UserError> {
     user
 }
+

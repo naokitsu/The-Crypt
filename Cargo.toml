@@ -14,7 +14,8 @@ uuid = { version = "1.7.0", features = ["serde", "v4"] }
 dotenv = "0.15.0"
 rocket_db_pools = { version = "0.1.0", default-features = false, features = ["diesel_postgres"] }
 openssl = { version = "0.10.64" }
-base64 = "0.21.7"
+jsonwebtoken = "9.2.0"
+chrono = "0.4.34"
 
 
 

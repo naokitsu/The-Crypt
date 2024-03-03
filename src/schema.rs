@@ -9,7 +9,6 @@ diesel::table! {
 
 diesel::table! {
     sessions (id) {
-        #[max_length = 72]
         id -> Varchar,
         user_id -> Uuid,
     }
@@ -20,6 +19,7 @@ diesel::table! {
         id -> Uuid,
         #[max_length = 64]
         username -> Varchar,
+        is_admin -> Bool,
     }
 }
 

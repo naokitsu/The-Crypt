@@ -18,6 +18,7 @@ use crate::models::login_request::LoginError;
 pub struct User {
     pub id: uuid::Uuid,
     pub username: String,
+    pub is_admin: bool,
 }
 
 #[async_trait]
@@ -50,7 +51,8 @@ impl<'r> Responder<'r, 'static> for UserError {
 impl Serialize for UserError {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
         where
-            S: serde::Serializer {
+            S: serde::Serializer
+    {
         let mut state = serializer.serialize_struct("LoginError", 1)?;
         match self {
             UserError::InternalServerError => state.serialize_field("message", "Could not login")?,

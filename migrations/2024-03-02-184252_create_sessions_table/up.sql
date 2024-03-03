@@ -1,7 +1,7 @@
 -- Your SQL goes here
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE TABLE sessions (
-                       id VARCHAR(72) NOT NULL,
+                       id VARCHAR NOT NULL,
                        user_id UUID NOT NULL
 );
 

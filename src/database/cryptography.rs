@@ -1,8 +1,9 @@
-use base64::Engine;
-use base64::engine::general_purpose::STANDARD;
+use chrono::Utc;
+use jsonwebtoken::{Algorithm, encode, Header};
 use openssl::error::ErrorStack;
 use openssl::hash::hash as hash_openssl;
 use openssl::rand::rand_bytes;
+use rocket::serde::{Deserialize, Serialize};
 
 
 const MESSAGE_DIGEST: fn() -> openssl::hash::MessageDigest = openssl::hash::MessageDigest::sha256;
@@ -13,15 +14,36 @@ pub(super) const SALT_SIZE: usize = 16;
 const HASH_SIZE: usize = 32;
 const SALTED_SIZE: usize = SALT_SIZE + HASH_SIZE;
 
-pub(crate) fn gen_login_token() -> Result<String, ErrorStack> {
-    let mut buf = [0; TOKEN_SIZE_U8];
-    rand_bytes(&mut buf)?;
-    let mut token = STANDARD.encode(buf.as_ref());
-    // It shouldn't be a problem if it's a valid base64 string
-    // because 72 character long base64 string contains 54 bytes,
-    // but it's better to be safe, since I don't want to trust the library implementation
-    token.truncate(TOKEN_SIZE_BASE64);
-    Ok(token)
+const JWT_SECRET: &[u8] = b"Szechuan Sauce Recipe";
+
+
+#[derive(Debug, Serialize, Deserialize)]
+struct Claims {
+    sub: String,
+    role: String,
+    exp: usize,
+}
+
+pub(super) enum TokenGenError {
+    JWTTokenError
+}
+
+pub(crate) fn gen_login_token(user_id: uuid::Uuid, is_admin: bool) -> Result<String, TokenGenError> {
+    let expiration = Utc::now()
+        .checked_add_signed(chrono::Duration::seconds(60))
+        .expect("") // TODO
+        .timestamp();
+
+    let claims = Claims {
+        sub: user_id.to_string(),
+        role: if is_admin { "admin" } else { "user" }.to_string(),
+        exp: expiration as usize,
+    };
+    let header = Header::new(Algorithm::HS512);
+    let jwt = encode(&header, &claims, &jsonwebtoken::EncodingKey::from_secret(JWT_SECRET))
+        .map_err(|_| TokenGenError::JWTTokenError)?;
+
+    Ok(jwt)
 }
 
 pub(super) fn verify_password(salt: &[u8], password: &[u8], hash: &[u8]) -> Result<bool, ErrorStack> {
