@@ -8,33 +8,23 @@ use rocket_db_pools::Connection;
 use crate::database::{auth_database::AuthDatabase, Db};
 use rocket_db_pools::diesel::{prelude::*};
 use uuid::Uuid;
-use crate::models::User;
+use crate::models::login_request::{LoginError, LoginRequest};
+use crate::models::register_request::{RegisterError, RegisterRequest};
+use crate::models::token::Token;
+use crate::models::user::{User, UserError};
 
-
-#[derive(Deserialize, Debug, Clone)]
-#[serde(crate = "rocket::serde")]
-pub struct LoginRequest<'a> {
-    pub username: &'a str,
-    pub password: &'a str,
-}
 
 #[post("/login", format = "json", data = "<login_request>")]
-pub(super) async fn login(login_request: Option<Json<LoginRequest<'_>>>, mut db: Connection<Db>) -> Result<String, Status> {
-    use crate::schema::users::*;
-    let login_request = login_request.ok_or(Status::BadRequest)?;
-
+pub(super) async fn login(login_request: Json<LoginRequest<'_>>, mut db: Connection<Db>) -> Result<Token, LoginError> {
     db.login(login_request.username, login_request.password).await
 }
 
 #[post("/register", format = "json", data = "<login_request>")]
-pub(super) async fn register(login_request: Option<Json<LoginRequest<'_>>>, mut db: Connection<Db>) -> Result<String, Status> {
-    use crate::schema::users::*;
-    let login_request = login_request.ok_or(Status::BadRequest)?;
-
+pub(super) async fn register(login_request: Json<RegisterRequest<'_>>, mut db: Connection<Db>) -> Result<Token, RegisterError> {
     db.register(login_request.username, login_request.password).await
 }
 
 #[get("/me")]
-pub(super) async fn me(user: User) -> Json<User> {
-    Json(user)
+pub(super) async fn me(user: Result<User, UserError>) -> Result<User, UserError> {
+    user
 }

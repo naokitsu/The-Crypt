@@ -2,20 +2,35 @@ use diesel::result::Error;
 use rocket::http::Status;
 use crate::database::cryptography::SALT_SIZE;
 use crate::database::Db;
-use crate::models::User;
+use crate::models::login_request::{LoginError};
+use crate::models::register_request::RegisterError;
+use crate::models::token::Token;
+use crate::models::user::User;
 use super::cryptography;
 use crate::schema;
 
 pub(crate) trait AuthDatabase {
-    async fn login(&mut self, login: &str, password: &str) -> Result<String, Status>;
-    async fn register(&mut self, login: &str, password: &str) -> Result<String, Status>;
-    async fn generate_login_token(&mut self, user: uuid::Uuid) -> Result<String, Status>;
+    async fn login(&mut self, login: &str, password: &str) -> Result<Token, LoginError>;
+    async fn register(&mut self, login: &str, password: &str) -> Result<Token, RegisterError>;
+    async fn generate_token(&mut self, user: uuid::Uuid) -> Result<Token, TokenGenerateError>;
     async fn verify_login_token(&mut self, login_token: &str) -> Result<User, Status>;
 }
 
+enum TokenGenerateError {
+    InternalServerError
+}
+
+impl From<TokenGenerateError> for LoginError {
+    fn from(value: TokenGenerateError) -> Self {
+        match value {
+            TokenGenerateError::InternalServerError =>
+                LoginError::InternalServerError,
+        }
+    }
+}
 
 impl AuthDatabase for rocket_db_pools::Connection<Db> {
-    async fn login(&mut self, login: &str, password: &str) -> Result<String, Status> {
+    async fn login(&mut self, login: &str, password: &str) -> Result<Token, LoginError> {
         use rocket_db_pools::diesel::prelude::*;
         use schema::users::{self, dsl::*};
 
@@ -24,29 +39,29 @@ impl AuthDatabase for rocket_db_pools::Connection<Db> {
             .filter(username.eq(login))
             .first::<(Vec<u8>, uuid::Uuid)>(self)
             .await
-            .map_err(|x| match x {
-                Error::NotFound => Status::NotFound,
-                _ => Status::InternalServerError,
-            })?;
+            .map_err(|err| match err {
+                Error::NotFound => LoginError::Unauthorized,
+                _ => LoginError::InternalServerError
+            } )?;
 
-
-        if user_salted_hash.len() <= SALT_SIZE { return Err(Status::InternalServerError) }
+        if user_salted_hash.len() <= SALT_SIZE { return Err(LoginError::InternalServerError) }
         let (salt, hash) = user_salted_hash
             .split_at(SALT_SIZE);
 
-        if cryptography::verify_password(salt, password.as_bytes(), hash).map_err(|_| Status::InternalServerError)? {
-            self.generate_login_token(user_uuid).await
+        if cryptography::verify_password(salt, password.as_bytes(), hash).map_err(|_| LoginError::InternalServerError)? {
+            self.generate_token(user_uuid).await.map_err(|err| err.into())
         } else {
-            Err(Status::Unauthorized)
+            Err(LoginError::Unauthorized)
         }
+
     }
 
-    async fn register(&mut self, login: &str, password: &str) -> Result<String, Status> {
+    async fn register(&mut self, login: &str, password: &str) -> Result<Token, RegisterError> {
         use rocket_db_pools::diesel::prelude::*;
         use schema::users::{self, dsl::*};
 
         let salt_hash = cryptography::hash_password(password.as_bytes())
-            .map_err(|_| Status::InternalServerError)?;
+            .map_err(|_| RegisterError::InternalServerError)?;
 
         let user_uuid = diesel::insert_into(users::table)
             .values((
@@ -58,35 +73,38 @@ impl AuthDatabase for rocket_db_pools::Connection<Db> {
             .await
             .map_err(|err| match err {
                 Error::DatabaseError(diesel::result::DatabaseErrorKind::UniqueViolation, _) =>
-                    Status::Conflict,
-                _ => Status::InternalServerError,
+                    RegisterError::Conflict,
+                _ => RegisterError::InternalServerError,
             })?;
 
         self
-            .generate_login_token(user_uuid)
+            .generate_token(user_uuid)
             .await
+            .map_err(|_| RegisterError::InternalServerError)
     }
 
-    async fn generate_login_token(&mut self, user_uuid: uuid::Uuid) -> Result<String, Status> {
+
+
+    async fn generate_token(&mut self, user_uuid: uuid::Uuid) -> Result<Token, TokenGenerateError> {
         use rocket_db_pools::diesel::prelude::*;
         use schema::sessions::{self, dsl::*};
 
-        let login_token = cryptography::gen_login_token()
-            .map_err(|_| Status::InternalServerError)?;
+        let token = cryptography::gen_login_token()
+            .map_err(|_| TokenGenerateError::InternalServerError)?;
 
         let lines_affected = diesel::insert_into(sessions::table)
             .values((
-                id.eq(&login_token),
+                id.eq(&token),
                 user_id.eq(user_uuid),
             ))
             .execute(self)
             .await
-            .map_err(|_| Status::InternalServerError)?;
+            .map_err(|_| TokenGenerateError::InternalServerError)?;
 
         if lines_affected == 1 {
-            Ok(login_token)
+            Ok(Token{ access_token: token })
         } else {
-            Err(Status::InternalServerError)
+            Err(TokenGenerateError::InternalServerError)
         }
     }
 

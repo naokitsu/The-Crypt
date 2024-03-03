@@ -1,6 +1,4 @@
 mod login;
-mod objects;
-mod guard;
 
 use std::fmt::Display;
 use rocket::http::uri::Origin;

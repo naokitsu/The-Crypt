@@ -4,8 +4,6 @@ use rocket::Rocket;
 use rocket_db_pools::{Database};
 use rocket_db_pools::diesel::{self, prelude::*};
 use serde::Serialize;
-use crate::database::cryptography::SALT_SIZE;
-use crate::schema;
 use auth_database::AuthDatabase;
 
 mod cryptography;
