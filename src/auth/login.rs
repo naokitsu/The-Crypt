@@ -26,6 +26,8 @@ pub(super) async fn register(login_request: Json<RegisterRequest<'_>>, mut db: C
 
 #[get("/me")]
 pub(super) async fn me(user: Result<User, UserError>) -> Result<User, UserError> {
+    // You can change the user's type into just `User`, but then an Unauthorized cather is going to be called
+    // and i didn't write an own one
     user
 }
 

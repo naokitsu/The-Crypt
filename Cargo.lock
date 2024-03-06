@@ -213,23 +213,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 
 [[package]]
-name = "chatterbox"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "diesel 2.1.4",
- "dotenv",
- "jsonwebtoken",
- "openssl",
- "rocket 0.5.0",
- "rocket_contrib",
- "rocket_db_pools",
- "serde",
- "serde_json",
- "uuid",
-]
-
-[[package]]
 name = "chrono"
 version = "0.4.34"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2068,6 +2051,23 @@ name = "spin"
 version = "0.9.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6980e8d7511241f8acf4aebddbb1ff938df5eebe98691418c4468d0b72a96a67"
+
+[[package]]
+name = "spiritbox"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "diesel 2.1.4",
+ "dotenv",
+ "jsonwebtoken",
+ "openssl",
+ "rocket 0.5.0",
+ "rocket_contrib",
+ "rocket_db_pools",
+ "serde",
+ "serde_json",
+ "uuid",
+]
 
 [[package]]
 name = "stable-pattern"
