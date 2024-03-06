@@ -4,7 +4,7 @@ pub(crate) trait AuthDatabase {
     async fn login(&mut self, login: &str, password: &str) -> Result<Token, LoginError>;
     async fn register(&mut self, login: &str, password: &str) -> Result<Token, RegisterError>;
     async fn generate_token(&mut self, user_id: uuid::Uuid, is_admin: bool) -> Result<Token, TokenGenerateError>;
-    async fn verify_login_token(&mut self, login_token: &str) -> Result<User, TokenVerificationError>;
+    async fn verify_login_token(&mut self, login_token: [u8; 32]) -> Result<User, TokenVerificationError>;
 }
 
 pub enum TokenGenerateError {

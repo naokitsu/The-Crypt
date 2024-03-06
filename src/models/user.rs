@@ -74,7 +74,9 @@ impl<'r> FromRequest<'r> for User {
         match token {
             Some(token) => {
                 let token = token.trim_start_matches("BEARER ");
-                match connection.verify_login_token(token).await {
+                let mut fixed_array = [0u8; 32];
+                fixed_array.copy_from_slice(token.as_bytes());
+                match connection.verify_login_token(fixed_array).await {
                     Ok(user) => Outcome::Success(user),
                     Err(_) => Outcome::Error((Status::Unauthorized, UserError::Unauthorized)),
                 }

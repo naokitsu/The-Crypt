@@ -1,8 +1,11 @@
+use diesel::deserialize::FromSqlRow;
 use diesel::result::Error;
 use diesel::RunQueryDsl;
+use rocket_contrib::databases::diesel::Queryable;
 use rocket_db_pools::{diesel, Database};
 mod cryptography;
 mod auth_database;
+mod token_database;
 
 pub(crate) use auth_database::AuthDatabase;
 use crate::database::auth_database::TokenVerificationError;
@@ -90,35 +93,39 @@ impl AuthDatabase for rocket_db_pools::Connection<Db> {
         use rocket_db_pools::diesel::prelude::*;
         use crate::schema::sessions::{self, dsl::*};
 
-        let token = cryptography::gen_login_token(db_id, db_is_admin)
-            .map_err(|_| auth_database::TokenGenerateError::InternalServerError)?;
+        let mut key_random: [u8; 32] = [0; 32];
+        let mut nonce_random: [u8; 32] = [0; 32];
+        openssl::rand::rand_bytes(&mut key_random).and_then(
+            |_| openssl::rand::rand_bytes(&mut nonce_random)
+        ).map_err(|_| auth_database::TokenGenerateError::InternalServerError)?;
 
         let lines_affected = diesel::insert_into(sessions::table)
             .values((
-                id.eq(&token),
-                user_id.eq(db_id),
+                sessions::key.eq(&key_random.as_slice()),
+                sessions::nonce.eq(&nonce_random.as_slice()),
+                sessions::user_id.eq(db_id),
             ))
             .execute(self)
             .await
             .map_err(|_| auth_database::TokenGenerateError::InternalServerError)?;
 
         if lines_affected == 1 {
-            Ok(Token{ access_token: token })
+            Ok(Token{ access_token: "Placeholder".to_string() })
         } else {
             Err(auth_database::TokenGenerateError::InternalServerError)
         }
     }
 
-    async fn verify_login_token(&mut self, login_token: &str) -> Result<User, TokenVerificationError> {
+    async fn verify_login_token(&mut self, login_token: [u8; 32]) -> Result<User, TokenVerificationError> {
         use rocket_db_pools::diesel::prelude::*;
         use crate::schema::sessions::{self};
         use crate::schema::users::{self};
 
-        if let Err(err) = cryptography::verify_login_token(login_token) {
+        if let Err(err) = cryptography::verify_login_token(&login_token) {
             return match err {
                 cryptography::TokenVerifyError::Expired => {
                     if let Err(_) = diesel::delete(sessions::table)
-                        .filter(sessions::id.eq(login_token))
+                        .filter(sessions::key.eq(login_token.as_slice()))
                         .execute(self)
                         .await {
                         Err(TokenVerificationError::InternalServerError)
@@ -134,7 +141,7 @@ impl AuthDatabase for rocket_db_pools::Connection<Db> {
 
         users::table
             .inner_join(sessions::table)
-            .filter(sessions::id.eq(login_token))
+            .filter(sessions::key.eq(login_token.as_slice()))
             .select(users::all_columns)
             .first::<User>(self)
             .await

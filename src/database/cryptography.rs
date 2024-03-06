@@ -55,17 +55,8 @@ pub(crate) fn gen_login_token(user_id: uuid::Uuid, is_admin: bool) -> Result<Str
     Ok(jwt)
 }
 
-pub(crate) fn verify_login_token(token: &str) -> Result<(), TokenVerifyError> {
-    let validation = jsonwebtoken::Validation::new(Algorithm::HS256);
-    let claims = jsonwebtoken::decode::<Claims>(token, &jsonwebtoken::DecodingKey::from_secret(JWT_SECRET), &validation)
-        .map_err(|_| TokenVerifyError::JWTTokenError)?
-        .claims;
-    let now  = Utc::now();
-    if claims.exp < now.timestamp() as usize {
-        Err(TokenVerifyError::Expired)
-    } else {
-        Ok(())
-    }
+pub(crate) fn verify_login_token(token: &[u8; 32]) -> Result<(), TokenVerifyError> {
+    Ok(())
 }
 
 pub(super) fn verify_password(salt: &[u8], password: &[u8], hash: &[u8]) -> Result<bool, ErrorStack> {

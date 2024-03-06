@@ -8,9 +8,10 @@ diesel::table! {
 }
 
 diesel::table! {
-    sessions (id) {
-        id -> Varchar,
+    sessions (key) {
         user_id -> Uuid,
+        key -> Bytea,
+        nonce -> Bytea,
     }
 }
 
