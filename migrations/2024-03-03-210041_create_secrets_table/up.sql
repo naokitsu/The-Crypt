@@ -2,7 +2,7 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE TABLE secrets (
     user_id UUID NOT NULL,
-    salted_hash bytea NOT NULL
+    salt bytea NOT NULL
 );
 
 ALTER TABLE secrets ADD PRIMARY KEY (user_id);

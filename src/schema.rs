@@ -3,7 +3,7 @@
 diesel::table! {
     secrets (user_id) {
         user_id -> Uuid,
-        salted_hash -> Bytea,
+        salt -> Bytea,
     }
 }
 
