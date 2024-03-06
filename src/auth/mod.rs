@@ -1,6 +1,4 @@
 mod login;
-mod r#test
-mod test_endpoints;
 
 use std::fmt::Display;
 use rocket::http::uri::Origin;

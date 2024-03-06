@@ -76,10 +76,11 @@ impl<'r> FromRequest<'r> for User {
                 let token = token.trim_start_matches("BEARER ");
                 let mut fixed_array = [0u8; 32];
                 fixed_array.copy_from_slice(token.as_bytes());
-                match connection.verify_login_token(fixed_array).await {
+                todo!("Token Verification Here, it shall return the user")
+                /*match connection.verify_login_token(fixed_array).await {
                     Ok(user) => Outcome::Success(user),
                     Err(_) => Outcome::Error((Status::Unauthorized, UserError::Unauthorized)),
-                }
+                }*/
             }
             None => Outcome::Error((Status::Unauthorized, UserError::Unauthorized)),
         }

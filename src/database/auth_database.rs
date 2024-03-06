@@ -5,8 +5,6 @@ use crate::models::{LoginError, RegisterError, Token, User};
 pub(crate) trait AuthDatabase<T: super::token_database::Database = Self> {
     async fn login(&mut self, login: &str, password: &str) -> Result<Token, LoginError>;
     async fn register(&mut self, login: &str, password: &str) -> Result<Token, RegisterError>;
-    async fn generate_token(&mut self, user_id: uuid::Uuid, is_admin: bool) -> Result<Token, TokenGenerateError>;
-    async fn verify_login_token(&mut self, login_token: [u8; 32]) -> Result<User, TokenVerificationError>;
 }
 
 pub enum TokenGenerateError {
@@ -60,7 +58,7 @@ impl AuthDatabase for rocket_db_pools::Connection<Db> {
             .split_at(cryptography::SALT_SIZE);
 
         if cryptography::verify_password(salt, password.as_bytes(), hash).map_err(|_| LoginError::InternalServerError)? {
-            self.generate_token(db_id, db_is_admin).await.map_err(|err| err.into())
+            todo!("Token Generation Here")
         } else {
             Err(LoginError::Unauthorized)
         }
@@ -79,7 +77,7 @@ impl AuthDatabase for rocket_db_pools::Connection<Db> {
                 users::username.eq(login),
             ))
             .returning((users::id, users::is_admin))
-            .get_result(self)
+            .get_result::<(uuid::Uuid, bool)>(self)
             .await
             .map_err(|err| match err {
                 Error::DatabaseError(rocket_db_pools::diesel::result::DatabaseErrorKind::UniqueViolation, _) =>
@@ -96,59 +94,7 @@ impl AuthDatabase for rocket_db_pools::Connection<Db> {
             .await
             .map_err(|_| RegisterError::InternalServerError)?;
 
-        self
-            .generate_token(db_id, db_is_admin)
-            .await
-            .map_err(|_| RegisterError::InternalServerError)
-    }
-
-    async fn generate_token(&mut self, db_id: uuid::Uuid, db_is_admin: bool) -> Result<Token, auth_database::TokenGenerateError> {
-        let mut key_random: [u8; 32] = [0; 32];
-        let mut nonce_random: [u8; 32] = [0; 32];
-        openssl::rand::rand_bytes(&mut key_random).and_then(
-            |_| openssl::rand::rand_bytes(&mut nonce_random)
-        ).map_err(|_| auth_database::TokenGenerateError::InternalServerError)?;
-
-        self.insert_session(db_id, key_random, nonce_random, db_is_admin)
-            .await
-            .map_err(|_| auth_database::TokenGenerateError::InternalServerError)?;
-
-        Ok(Token{ access_token: "Placeholder".to_string() })
-    }
-
-    async fn verify_login_token(&mut self, login_token: [u8; 32]) -> Result<User, TokenVerificationError> {
-        use rocket_db_pools::diesel::prelude::*;
-        use crate::schema::sessions::{self};
-        use crate::schema::users::{self};
-
-        if let Err(err) = cryptography::verify_login_token(&login_token) {
-            return match err {
-                cryptography::TokenVerifyError::Expired => {
-                    if let Err(_) = rocket_db_pools::diesel::delete(sessions::table)
-                        .filter(sessions::key.eq(login_token.as_slice()))
-                        .execute(self)
-                        .await {
-                        Err(TokenVerificationError::InternalServerError)
-                    } else {
-                        Err(TokenVerificationError::Unauthorized)
-                    }
-                },
-                _ => Err(TokenVerificationError::InternalServerError),
-            };
-        }
-
-
-
-        users::table
-            .inner_join(sessions::table)
-            .filter(sessions::key.eq(login_token.as_slice()))
-            .select(users::all_columns)
-            .first::<User>(self)
-            .await
-            .map_err(|x| match x {
-                Error::NotFound => TokenVerificationError::Unauthorized,
-                _ => TokenVerificationError::InternalServerError,
-            })
+        todo!("Token Generation Here")
     }
 }
 
