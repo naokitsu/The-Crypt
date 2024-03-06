@@ -1,13 +1,11 @@
-use std::io::Write;
-use diesel::RunQueryDsl;
-use rocket::Rocket;
-use rocket_db_pools::{Database};
-use rocket_db_pools::diesel::{self, prelude::*};
-use serde::Serialize;
-use auth_database::AuthDatabase;
-
+use diesel::result::Error;
+use rocket_db_pools::{diesel, Database};
 mod cryptography;
-pub(crate) mod auth_database;
+mod auth_database;
+
+pub(crate) use auth_database::AuthDatabase;
+use crate::database::auth_database::TokenVerificationError;
+use crate::models::{LoginError, RegisterError, Token, User};
 
 #[derive(Database)]
 #[database("chat_app")]
@@ -17,11 +15,113 @@ pub trait PostgreSQLDatabase {
     fn attach_database(self) -> Self;
 }
 
-impl PostgreSQLDatabase for Rocket<rocket::Build> {
+impl PostgreSQLDatabase for rocket::Rocket<rocket::Build> {
     fn attach_database(self) -> Self {
         self.attach(Db::init())
         // TODO: migrations
     }
 }
 
+impl AuthDatabase for rocket_db_pools::Connection<Db> {
+    async fn login(&mut self, login: &str, password: &str) -> Result<Token, LoginError> {
+        use rocket_db_pools::diesel::prelude::*;
+        use crate::schema::{users, secrets};
 
+        let (db_salted_hash, db_id, db_is_admin) = users::table
+            .inner_join(secrets::table)
+            .select((secrets::salted_hash, users::id, users::is_admin))
+            .filter(users::username.eq(login))
+            .first::<(Vec<u8>, uuid::Uuid, bool)>(self)
+            .await
+            .map_err(|err| match err {
+                Error::NotFound => LoginError::Unauthorized,
+                _ => LoginError::InternalServerError
+            })?;
+
+        if db_salted_hash.len() <= cryptography::SALT_SIZE { return Err(LoginError::InternalServerError) }
+        let (salt, hash) = db_salted_hash
+            .split_at(cryptography::SALT_SIZE);
+
+        if cryptography::verify_password(salt, password.as_bytes(), hash).map_err(|_| LoginError::InternalServerError)? {
+            self.generate_token(db_id, db_is_admin).await.map_err(|err| err.into())
+        } else {
+            Err(LoginError::Unauthorized)
+        }
+
+    }
+
+    async fn register(&mut self, login: &str, password: &str) -> Result<Token, RegisterError> {
+        use rocket_db_pools::diesel::prelude::*;
+        use crate::schema::{users, secrets};
+
+        let salt_hash = cryptography::hash_password(password.as_bytes())
+            .map_err(|_| RegisterError::InternalServerError)?;
+
+        let (db_id, db_is_admin) = diesel::insert_into(users::table)
+            .values((
+                users::username.eq(login),
+            ))
+            .returning((users::id, users::is_admin))
+            .get_result(self)
+            .await
+            .map_err(|err| match err {
+                Error::DatabaseError(diesel::result::DatabaseErrorKind::UniqueViolation, _) =>
+                    RegisterError::Conflict,
+                _ => RegisterError::InternalServerError,
+            })?;
+
+        diesel::insert_into(secrets::table)
+            .values((
+                secrets::user_id.eq(db_id),
+                secrets::salted_hash.eq(salt_hash),
+            ))
+            .execute(self)
+            .await
+            .map_err(|_| RegisterError::InternalServerError)?;
+
+        self
+            .generate_token(db_id, db_is_admin)
+            .await
+            .map_err(|_| RegisterError::InternalServerError)
+    }
+
+    async fn generate_token(&mut self, db_id: uuid::Uuid, db_is_admin: bool) -> Result<Token, auth_database::TokenGenerateError> {
+        use rocket_db_pools::diesel::prelude::*;
+        use crate::schema::sessions::{self, dsl::*};
+
+        let token = cryptography::gen_login_token(db_id, db_is_admin)
+            .map_err(|_| auth_database::TokenGenerateError::InternalServerError)?;
+
+        let lines_affected = diesel::insert_into(sessions::table)
+            .values((
+                id.eq(&token),
+                user_id.eq(db_id),
+            ))
+            .execute(self)
+            .await
+            .map_err(|_| auth_database::TokenGenerateError::InternalServerError)?;
+
+        if lines_affected == 1 {
+            Ok(Token{ access_token: token })
+        } else {
+            Err(auth_database::TokenGenerateError::InternalServerError)
+        }
+    }
+
+    async fn verify_login_token(&mut self, login_token: &str) -> Result<User, TokenVerificationError> {
+        use rocket_db_pools::diesel::prelude::*;
+        use crate::schema::sessions::{self};
+        use crate::schema::users::{self};
+
+        users::table
+            .inner_join(sessions::table)
+            .filter(sessions::id.eq(login_token))
+            .select(users::all_columns)
+            .first::<User>(self)
+            .await
+            .map_err(|x| match x {
+                Error::NotFound => TokenVerificationError::Unauthorized,
+                _ => TokenVerificationError::InternalServerError,
+            })
+    }
+}

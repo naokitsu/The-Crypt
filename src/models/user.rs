@@ -5,11 +5,10 @@ use rocket::request::{FromRequest, Outcome};
 use rocket::response::Responder;
 use rocket::serde::{Deserialize, Serialize};
 use rocket_db_pools::Connection;
-use crate::database::auth_database::AuthDatabase;
-use crate::database::Db;
+use crate::database::{Db, AuthDatabase};
 use rocket::serde::json::Json;
 use serde::ser::SerializeStruct;
-use crate::models::login_request::LoginError;
+
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Queryable)]
 #[diesel(table_name = crate::schema::users)]

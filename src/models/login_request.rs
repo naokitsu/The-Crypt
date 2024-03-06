@@ -1,13 +1,8 @@
-use rocket::data::FromData;
 use rocket::http::Status;
-use rocket::Request;
-use rocket::request::{FromRequest};
 use rocket::response::Responder;
 use rocket::serde::{Deserialize, Serialize};
 use rocket::serde::json::Json;
 use serde::ser::SerializeStruct;
-use crate::models::token::Token;
-
 
 #[derive(Deserialize, Debug, Clone, Copy, PartialEq)]
 #[serde(crate = "rocket::serde")]
@@ -15,8 +10,6 @@ pub struct LoginRequest<'a> {
     pub username: &'a str,
     pub password: &'a str,
 }
-
-
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum LoginError {
@@ -26,7 +19,7 @@ pub enum LoginError {
 
 #[async_trait]
 impl<'r> Responder<'r, 'static> for LoginError {
-    fn respond_to(self, _request: &'r Request<'_>) -> rocket::response::Result<'static> {
+    fn respond_to(self, _request: &'r rocket::Request<'_>) -> rocket::response::Result<'static> {
         match self {
             LoginError::InternalServerError => {
                 (Status::InternalServerError, Json(self)).respond_to(_request)

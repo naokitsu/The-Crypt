@@ -1,12 +1,9 @@
-use rocket::data::FromData;
 use rocket::http::Status;
 use rocket::Request;
-use rocket::request::{FromRequest};
 use rocket::response::Responder;
 use rocket::serde::{Deserialize, Serialize};
 use rocket::serde::json::Json;
 use serde::ser::SerializeStruct;
-use crate::models::token::Token;
 
 
 #[derive(Deserialize, Debug, Clone, Copy, PartialEq)]

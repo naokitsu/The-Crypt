@@ -7,12 +7,12 @@ use rocket::serde::{Deserialize, Serialize};
 
 
 const MESSAGE_DIGEST: fn() -> openssl::hash::MessageDigest = openssl::hash::MessageDigest::sha256;
-const MESSAGE_DIGEST_SIZE: usize = 32;
-const TOKEN_SIZE_U8: usize = 54;
-const TOKEN_SIZE_BASE64: usize = TOKEN_SIZE_U8 * 4 / 3;
+//const MESSAGE_DIGEST_SIZE: usize = 32;
+//const TOKEN_SIZE_U8: usize = 54;
+//const TOKEN_SIZE_BASE64: usize = TOKEN_SIZE_U8 * 4 / 3;
 pub(super) const SALT_SIZE: usize = 16;
-const HASH_SIZE: usize = 32;
-const SALTED_SIZE: usize = SALT_SIZE + HASH_SIZE;
+//const HASH_SIZE: usize = 32;
+//const SALTED_SIZE: usize = SALT_SIZE + HASH_SIZE;
 
 const JWT_SECRET: &[u8] = b"Szechuan Sauce Recipe";
 
@@ -59,10 +59,7 @@ pub(super) fn hash_password(password: &[u8]) -> Result<Vec<u8>, ErrorStack> {
 
     let salt_password = [&salt, password].concat();
     let request_hashed = hash_openssl(MESSAGE_DIGEST(), salt_password.as_slice())?;
-
-    //let mut hashed_slice = [0; MESSAGE_DIGEST_SIZE];
-    //hashed_slice.copy_from_slice(&request_hashed);
-    let salted_hash = [salt.as_slice(), request_hashed.as_ref()].concat();;
+    let salted_hash = [salt.as_slice(), request_hashed.as_ref()].concat();
 
     Ok(salted_hash)
 }
