@@ -1,11 +1,9 @@
-use std::any::Any;
 use chrono::Utc;
 use jsonwebtoken::{Algorithm, encode, Header};
 use openssl::error::ErrorStack;
 use openssl::hash::hash as hash_openssl;
 use openssl::rand::rand_bytes;
 use rocket::serde::{Deserialize, Serialize};
-
 
 const MESSAGE_DIGEST: fn() -> openssl::hash::MessageDigest = openssl::hash::MessageDigest::sha256;
 //const MESSAGE_DIGEST_SIZE: usize = 32;
