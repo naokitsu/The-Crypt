@@ -1,3 +1,4 @@
+use std::any::Any;
 use chrono::Utc;
 use jsonwebtoken::{Algorithm, encode, Header};
 use openssl::error::ErrorStack;
@@ -28,9 +29,14 @@ pub(super) enum TokenGenError {
     JWTTokenError
 }
 
+pub(super) enum TokenVerifyError {
+    Expired,
+    JWTTokenError,
+}
+
 pub(crate) fn gen_login_token(user_id: uuid::Uuid, is_admin: bool) -> Result<String, TokenGenError> {
     let expiration = Utc::now()
-        .checked_add_signed(chrono::Duration::seconds(60))
+        .checked_add_signed(chrono::Duration::seconds(60*60))
         .expect("") // TODO
         .timestamp();
 
@@ -39,11 +45,29 @@ pub(crate) fn gen_login_token(user_id: uuid::Uuid, is_admin: bool) -> Result<Str
         role: if is_admin { "admin" } else { "user" }.to_string(),
         exp: expiration as usize,
     };
-    let header = Header::new(Algorithm::HS512);
+    let header = Header {
+        alg: Algorithm::HS256,
+        typ: Some("JWT".to_string()),
+        ..Default::default()
+    };
+
     let jwt = encode(&header, &claims, &jsonwebtoken::EncodingKey::from_secret(JWT_SECRET))
         .map_err(|_| TokenGenError::JWTTokenError)?;
 
     Ok(jwt)
+}
+
+pub(crate) fn verify_login_token(token: &str) -> Result<(), TokenVerifyError> {
+    let validation = jsonwebtoken::Validation::new(Algorithm::HS256);
+    let claims = jsonwebtoken::decode::<Claims>(token, &jsonwebtoken::DecodingKey::from_secret(JWT_SECRET), &validation)
+        .map_err(|_| TokenVerifyError::JWTTokenError)?
+        .claims;
+    let now  = Utc::now();
+    if claims.exp < now.timestamp() as usize {
+        Err(TokenVerifyError::Expired)
+    } else {
+        Ok(())
+    }
 }
 
 pub(super) fn verify_password(salt: &[u8], password: &[u8], hash: &[u8]) -> Result<bool, ErrorStack> {

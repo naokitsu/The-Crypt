@@ -1,4 +1,5 @@
 use diesel::result::Error;
+use diesel::RunQueryDsl;
 use rocket_db_pools::{diesel, Database};
 mod cryptography;
 mod auth_database;
@@ -112,6 +113,24 @@ impl AuthDatabase for rocket_db_pools::Connection<Db> {
         use rocket_db_pools::diesel::prelude::*;
         use crate::schema::sessions::{self};
         use crate::schema::users::{self};
+
+        if let Err(err) = cryptography::verify_login_token(login_token) {
+            return match err {
+                cryptography::TokenVerifyError::Expired => {
+                    if let Err(_) = diesel::delete(sessions::table)
+                        .filter(sessions::id.eq(login_token))
+                        .execute(self)
+                        .await {
+                        Err(TokenVerificationError::InternalServerError)
+                    } else {
+                        Err(TokenVerificationError::Unauthorized)
+                    }
+                },
+                _ => Err(TokenVerificationError::InternalServerError),
+            };
+        }
+
+
 
         users::table
             .inner_join(sessions::table)
