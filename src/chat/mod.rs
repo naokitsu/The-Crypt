@@ -15,6 +15,6 @@ impl ChatService for rocket::Rocket<rocket::Build> {
     fn mount_chat_service<'a, B>(self, base: B) -> Self
         where B: TryInto<Origin<'a>> + Clone + Display, B::Error: Display
     {
-        self.mount(base, routes![login::login, login::register, login::me])
+        self.mount(base, routes![])
     }
 }

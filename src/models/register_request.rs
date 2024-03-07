@@ -1,9 +1,11 @@
+use rocket::data::{FromData, Outcome};
 use rocket::http::Status;
-use rocket::Request;
+use rocket::{Data, Request};
 use rocket::response::Responder;
 use rocket::serde::{Deserialize, Serialize};
 use rocket::serde::json::Json;
 use serde::ser::SerializeStruct;
+use crate::models::LoginRequest;
 
 
 #[derive(Deserialize, Debug, Clone, Copy, PartialEq)]
@@ -11,6 +13,15 @@ use serde::ser::SerializeStruct;
 pub struct RegisterRequest<'a> {
     pub username: &'a str,
     pub password: &'a str,
+}
+
+#[async_trait]
+impl<'r> FromData<'r> for RegisterRequest<'_> {
+    type Error = rocket::serde::json::Error<'r>;
+
+    async fn from_data(req: &'r Request<'_>, data: Data<'r>) -> Outcome<'r, Self> {
+        RegisterRequest::from_data(req, data).await
+    }
 }
 
 
