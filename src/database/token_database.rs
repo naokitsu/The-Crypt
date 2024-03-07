@@ -2,22 +2,22 @@ use diesel::QueryDsl;
 use diesel::result::Error;
 use crate::schema::sessions;
 
-enum DataRetrievalError {
+pub(crate) enum DataRetrievalError {
     NotFound,
     InternalError,
 }
 
-enum DataInsertionError {
+pub(super) enum DataInsertionError {
     AlreadyExists,
     InternalError,
 }
 
-enum DataSetError {
+pub(super) enum DataSetError {
     InvalidSession,
     InternalError,
 }
 
-enum DataRemovalError {
+pub(super) enum DataRemovalError {
     InvalidSession,
     InternalError,
 }

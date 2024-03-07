@@ -1,5 +1,8 @@
+use std::io::Write;
 use diesel::result::Error;
-use crate::database::{auth_database, cryptography, Db};
+use rocket::http::hyper::body::HttpBody;
+use crate::database::{auth_database, Db};
+use crate::database::token_database::Database;
 use crate::models::{LoginError, RegisterError, Token, User};
 
 pub(crate) trait AuthDatabase<T: super::token_database::Database = Self> {
@@ -42,26 +45,39 @@ impl AuthDatabase for rocket_db_pools::Connection<Db> {
         use rocket_db_pools::diesel::prelude::*;
         use crate::schema::{users, secrets};
 
-        let (db_salt, db_id) = users::table
-            .inner_join(secrets::table)
-            .select((secrets::salt, users::id))
+        let (db_id) = users::table
+            .select(users::id)
             .filter(users::username.eq(login))
-            .first::<(Vec<u8>, uuid::Uuid)>(self)
+            .first::<uuid::Uuid>(self)
             .await
             .map_err(|err| match err {
-                Error::NotFound => LoginError::Unauthorized,
+                Error::NotFound => {
+                    println!("{:?} {:?}", err, login);
+                    std::io::stdout().flush().unwrap();
+                    LoginError::Unauthorized
+                },
                 _ => LoginError::InternalServerError
             })?;
 
-        let _ = db_salt; // salt
-        let _ = db_id; // pepper
+        println!("!!!!");
+        std::io::stdout().flush().unwrap();
+        let mut key: [u8; 32] = [0; 32];
+        let nonce: [u8; 32] = [0; 32];
+        unsafe { // TODO
+            std::ptr::copy(login.as_ptr(), key.as_mut_ptr(), std::cmp::min(login.len(), 32));
+        }
+        let db_key = self.get_public_key(db_id)
+            .await
+            .map_err(|_| LoginError::InternalServerError)?;
 
-        if true {
-            todo!("Token Generation Here")
+        if db_key == key {
+            // Todo It all should not look like this, i hope lyly's verification will go there one day
+            Ok(Token{access_token:login.to_string()})
         } else {
+            println!("db_key: {:?} key: {:?}", db_key, key);
+            let _ = std::io::stdout().flush();
             Err(LoginError::Unauthorized)
         }
-
     }
 
     async fn register(&mut self, login: &str, password: &str) -> Result<Token, RegisterError> {
@@ -81,16 +97,15 @@ impl AuthDatabase for rocket_db_pools::Connection<Db> {
                 _ => RegisterError::InternalServerError,
             })?;
 
-        rocket_db_pools::diesel::insert_into(secrets::table)
-            .values((
-                secrets::user_id.eq(db_id),
-                secrets::salt.eq(todo!("Salt generate")),
-            ))
-            .execute(self)
+        let mut key: [u8; 32] = [0; 32];
+        let nonce: [u8; 32] = [0; 32];
+        unsafe { // TODO
+            std::ptr::copy(login.as_ptr(), key.as_mut_ptr(), std::cmp::min(login.len(), 32));
+        }
+        self.insert_session(db_id, key, nonce, true)
             .await
             .map_err(|_| RegisterError::InternalServerError)?;
-
-        todo!("Token Generation Here")
+        Ok(Token{access_token:login.to_string()})
     }
 }
 

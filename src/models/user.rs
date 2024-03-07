@@ -1,4 +1,5 @@
 use diesel::Queryable;
+use diesel::result::Error;
 use rocket::http::Status;
 use rocket::Request;
 use rocket::request::{FromRequest, Outcome};
@@ -8,6 +9,9 @@ use rocket_db_pools::Connection;
 use crate::database::{Db, AuthDatabase};
 use rocket::serde::json::Json;
 use serde::ser::SerializeStruct;
+use crate::models::LoginError;
+use crate::schema::{secrets, users};
+use crate::database::token_database::Database;
 
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Queryable)]
@@ -73,14 +77,40 @@ impl<'r> FromRequest<'r> for User {
         };
         match token {
             Some(token) => {
-                let token = token.trim_start_matches("BEARER ");
-                let mut fixed_array = [0u8; 32];
-                fixed_array.copy_from_slice(token.as_bytes());
-                todo!("Token Verification Here, it shall return the user")
-                /*match connection.verify_login_token(fixed_array).await {
-                    Ok(user) => Outcome::Success(user),
-                    Err(_) => Outcome::Error((Status::Unauthorized, UserError::Unauthorized)),
-                }*/
+                let token = token;
+                let mut key: [u8; 32] = [0; 32];
+                let nonce: [u8; 32] = [0; 32];
+                unsafe { // TODO
+                    std::ptr::copy(token.as_ptr(), key.as_mut_ptr(), std::cmp::min(token.len(), 32));
+                }
+
+                // ------ It is so cursed ---------
+                use rocket_db_pools::diesel::prelude::*;
+                use crate::schema::{users, secrets};
+
+                let (user) = users::table
+                    .filter(users::username.eq(token))
+                    .first::<User>(&mut connection)
+                    .await;
+
+                let user = match user {
+                    Ok(x) => x,
+                    Err(_) => return Outcome::Error((Status::Unauthorized, UserError::Unauthorized)),
+                };
+
+                let db_key = connection.get_public_key(user.id)
+                    .await
+                    .map_err(|_| LoginError::InternalServerError);
+
+                let db_key = match db_key {
+                    Ok(x) => x,
+                    Err(_) => return Outcome::Error((Status::InternalServerError, UserError::InternalServerError)),
+                };
+
+                match db_key == key {
+                    true => Outcome::Success(user),
+                    false => Outcome::Error((Status::Unauthorized, UserError::Unauthorized)),
+                }
             }
             None => Outcome::Error((Status::Unauthorized, UserError::Unauthorized)),
         }
