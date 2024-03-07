@@ -51,16 +51,10 @@ impl AuthDatabase for rocket_db_pools::Connection<Db> {
             .first::<uuid::Uuid>(self)
             .await
             .map_err(|err| match err {
-                Error::NotFound => {
-                    println!("{:?} {:?}", err, login);
-                    std::io::stdout().flush().unwrap();
-                    LoginError::Unauthorized
-                },
+                Error::NotFound => LoginError::Unauthorized,
                 _ => LoginError::InternalServerError
             })?;
 
-        println!("!!!!");
-        std::io::stdout().flush().unwrap();
         let mut key: [u8; 32] = [0; 32];
         let nonce: [u8; 32] = [0; 32];
         unsafe { // TODO
@@ -74,8 +68,6 @@ impl AuthDatabase for rocket_db_pools::Connection<Db> {
             // Todo It all should not look like this, i hope lyly's verification will go there one day
             Ok(Token{access_token:login.to_string()})
         } else {
-            println!("db_key: {:?} key: {:?}", db_key, key);
-            let _ = std::io::stdout().flush();
             Err(LoginError::Unauthorized)
         }
     }
