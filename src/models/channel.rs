@@ -54,6 +54,7 @@ impl<'r> Responder<'r, 'static> for Channel {
 pub enum Error {
     NotFound,
     Unauthorized,
+    Forbidden,
     Conflict,
     InternalServerError,
 }
@@ -73,7 +74,10 @@ impl<'r> Responder<'r, 'static> for Error {
             },
             Error::Conflict => {
                 (Status::Conflict, Json(self)).respond_to(_request)
-            }
+            },
+            Error::Forbidden => {
+                (Status::Forbidden, Json(self)).respond_to(_request)
+            },
         }
     }
 }
@@ -88,6 +92,7 @@ impl Serialize for Error {
             Error::Unauthorized => state.serialize_field("message", "Incorrect username or password")?,
             Error::NotFound => state.serialize_field("message", "Channel not found")?,
             Error::Conflict => state.serialize_field("message", "Channel already exists")?,
+            Error::Forbidden => state.serialize_field("message", "You are not an admin of the channel")?,
         }
         state.end()
     }
