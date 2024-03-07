@@ -2,10 +2,11 @@ use diesel::deserialize::FromSqlRow;
 use diesel::RunQueryDsl;
 use rocket_contrib::databases::diesel::Queryable;
 use rocket_db_pools::{diesel, Database};
-mod auth_database;
-pub(crate) mod token_database;
+mod auth;
+pub(crate) mod token;
+pub(crate) mod channels;
 
-pub(crate) use auth_database::AuthDatabase;
+pub(crate) use auth::AuthDatabase;
 
 #[derive(Database)]
 #[database("chat_app")]

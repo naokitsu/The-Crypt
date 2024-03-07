@@ -11,7 +11,7 @@ use rocket::serde::json::Json;
 use serde::ser::SerializeStruct;
 use crate::models::LoginError;
 use crate::schema::{secrets, users};
-use crate::database::token_database::Database;
+use crate::database::token::Database;
 
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Queryable)]

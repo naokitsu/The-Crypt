@@ -16,11 +16,11 @@ pub struct RegisterRequest<'a> {
 }
 
 #[async_trait]
-impl<'r> FromData<'r> for RegisterRequest<'_> {
+impl<'r> FromData<'r> for RegisterRequest<'r> {
     type Error = rocket::serde::json::Error<'r>;
 
     async fn from_data(req: &'r Request<'_>, data: Data<'r>) -> Outcome<'r, Self> {
-        RegisterRequest::from_data(req, data).await
+        Json::from_data(req, data).await.map(|json: Json<RegisterRequest>| json.into_inner())
     }
 }
 

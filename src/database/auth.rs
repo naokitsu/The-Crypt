@@ -1,11 +1,11 @@
 use std::io::Write;
 use diesel::result::Error;
 use rocket::http::hyper::body::HttpBody;
-use crate::database::{auth_database, Db};
-use crate::database::token_database::Database;
+use crate::database::{auth, Db};
+use crate::database::token::Database;
 use crate::models::{LoginError, RegisterError, Token, User};
 
-pub(crate) trait AuthDatabase<T: super::token_database::Database = Self> {
+pub(crate) trait AuthDatabase<T: super::token::Database = Self> {
     async fn login(&mut self, login: &str, password: &str) -> Result<Token, LoginError>;
     async fn register(&mut self, login: &str, password: &str) -> Result<Token, RegisterError>;
 }

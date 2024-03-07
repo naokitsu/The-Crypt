@@ -2,6 +2,7 @@
 extern crate core;
 
 use crate::auth::AuthService;
+use crate::chat::ChatService;
 use crate::database::PostgreSQLDatabase;
 
 
@@ -17,5 +18,6 @@ fn rocket() -> _ {
     rocket::build()
         .attach_database()
         .mount_auth_service("/auth")
+        .mount_chat_service("/chat")
 }
 

@@ -2,22 +2,44 @@ use rocket::serde::json::Json;
 use rocket_db_pools::Connection;
 use crate::database::{Db, AuthDatabase};
 use crate::models;
+use crate::models::{Channel, ChannelError, ChannelId};
+use crate::schema::messages::channel_id;
+use crate::database::channels::{Database, DataInsertionError, DataRemovalError, DataRetrievalError, DataSetError};
 
-
-#[post("/login", format = "json", data = "<login_request>")]
-pub async fn login(login_request: models::LoginRequest<'_>, mut db: Connection<Db>) -> Result<models::Token, models::LoginError> {
-    db.login(login_request.username, login_request.password).await
+#[get("/channels/<id>")]
+pub async fn get_channel_by_id(id: models::ChannelId, mut db: Connection<Db>) -> Result<Channel, ChannelError> {
+    db.get_channel(id.into())
+        .await
+        .map_err(|e| match e {
+            DataRetrievalError::NotFound => ChannelError::NotFound,
+            DataRetrievalError::InternalError => ChannelError::InternalServerError,
+        })
 }
 
-#[post("/register", format = "json", data = "<login_request>")]
-pub async fn register(login_request: models::RegisterRequest<'_>, mut db: Connection<Db>) -> Result<models::Token, models::RegisterError> {
-    db.register(login_request.username, login_request.password).await
+#[patch("/channels/<id>", format = "json", data = "<patch>")]
+pub async fn patch_channel_by_id(id: models::ChannelId, patch: models::ChannelPatch, mut db: Connection<Db>) -> Result<Channel, ChannelError> {
+    db.patch_channel(id.into(), patch)
+        .await
+        .map_err(|e| match e {
+            DataSetError::InternalError => ChannelError::InternalServerError,
+        })
 }
 
-#[get("/me")]
-pub async fn me(user: Result<models::user::User, models::user::UserError>) -> Result<models::user::User, models::user::UserError> {
-    // You can change the user's type into just `User`, but then an Unauthorized cather is going to be called
-    // and i didn't write an own one
-    user
+#[delete("/channels/<id>")]
+pub async fn remove_channel_by_id(id: models::ChannelId, mut db: Connection<Db>) -> Result<Channel, ChannelError> {
+    db.remove_session(id.into())
+        .await
+        .map_err(|e| match e {
+            DataRemovalError::InternalError => ChannelError::InternalServerError,
+        })
 }
 
+#[post("/channels", format = "json", data = "<channel>")]
+pub async fn create_channel(channel: models::ChannelInsert, mut db: Connection<Db>) -> Result<Channel, ChannelError> {
+    db.insert_channel(channel)
+        .await
+        .map_err(|e| match e {
+            DataInsertionError::AlreadyExists => ChannelError::Conflict,
+            DataInsertionError::InternalError => ChannelError::InternalServerError,
+        })
+}

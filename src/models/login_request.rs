@@ -5,6 +5,7 @@ use rocket::response::Responder;
 use rocket::serde::{Deserialize, Serialize};
 use rocket::serde::json::Json;
 use serde::ser::SerializeStruct;
+use crate::models::RegisterRequest;
 
 #[derive(Deserialize, Debug, Clone, Copy, PartialEq)]
 #[serde(crate = "rocket::serde")]
@@ -14,11 +15,11 @@ pub struct LoginRequest<'a> {
 }
 
 #[async_trait]
-impl<'r> FromData<'r> for LoginRequest<'_> {
+impl<'r> FromData<'r> for LoginRequest<'r> {
     type Error = rocket::serde::json::Error<'r>;
 
     async fn from_data(req: &'r Request<'_>, data: Data<'r>) -> Outcome<'r, Self> {
-        LoginRequest::from_data(req, data).await
+        Json::from_data(req, data).await.map(|json: Json<LoginRequest>| json.into_inner())
     }
 }
 
