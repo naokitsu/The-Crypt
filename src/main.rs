@@ -10,6 +10,7 @@ mod auth;
 pub mod schema;
 mod models;
 mod database;
+mod chat;
 
 #[launch]
 fn rocket() -> _ {

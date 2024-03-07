@@ -1,4 +1,4 @@
-mod login;
+mod endpoints;
 
 use std::fmt::Display;
 use rocket::http::uri::Origin;
@@ -15,6 +15,6 @@ impl AuthService for rocket::Rocket<rocket::Build> {
     fn mount_auth_service<'a, B>(self, base: B) -> Self
         where B: TryInto<Origin<'a>> + Clone + Display, B::Error: Display
     {
-        self.mount(base, routes![login::login, login::register, login::me])
+        self.mount(base, routes![endpoints::login, endpoints::register, endpoints::me])
     }
 }
