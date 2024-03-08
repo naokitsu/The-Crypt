@@ -26,9 +26,12 @@ pub async fn patch_channel_by_id(id: models::ChannelId, user: User, patch: model
             DataRetrievalError::InternalError => ChannelError::InternalServerError,
         })?;
 
-    if channel.admin_id != user.id {
-        return Err(ChannelError::Forbidden);
-    }
+    db.is_admin(id.into(), user.id)
+        .await
+        .map_err(|e| match e {
+            DataRetrievalError::NotFound => ChannelError::NotFound,
+            DataRetrievalError::InternalError => ChannelError::InternalServerError,
+        })?;
 
     db.patch_channel(id.into(), patch)
         .await
@@ -46,9 +49,12 @@ pub async fn remove_channel_by_id(id: models::ChannelId, user: User, mut db: Con
             DataRetrievalError::InternalError => ChannelError::InternalServerError,
         })?;
 
-    if channel.admin_id != user.id {
-        return Err(ChannelError::Forbidden);
-    }
+    db.is_admin(id.into(), user.id)
+        .await
+        .map_err(|e| match e {
+            DataRetrievalError::NotFound => ChannelError::NotFound,
+            DataRetrievalError::InternalError => ChannelError::InternalServerError,
+        })?;
 
     db.remove_session(id.into())
         .await
@@ -59,7 +65,6 @@ pub async fn remove_channel_by_id(id: models::ChannelId, user: User, mut db: Con
 
 #[post("/channels", format = "json", data = "<channel>")]
 pub async fn create_channel(mut channel: models::ChannelInsert, user: User, mut db: Connection<Db>) -> Result<Channel, ChannelError> {
-    channel.admin_id = user.id;
     db.insert_channel(channel)
         .await
         .map_err(|e| match e {

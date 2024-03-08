@@ -1,6 +1,6 @@
 use diesel::Queryable;
 use diesel::result::Error;
-use rocket::http::Status;
+use rocket::http::{Header, Status};
 use rocket::Request;
 use rocket::request::{FromRequest, Outcome};
 use rocket::response::Responder;

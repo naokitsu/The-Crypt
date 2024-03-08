@@ -1,9 +1,9 @@
 use diesel::expression::AsExpression;
 use diesel::result::Error;
-use crate::schema::channels;
 use rocket_db_pools::diesel::prelude::*;
 use rocket_db_pools::diesel::{RunQueryDsl, QueryDsl};
 use crate::{models, schema};
+use crate::schema::channels;
 
 
 pub(crate) enum DataRetrievalError {
@@ -41,6 +41,8 @@ pub trait Database {
     async fn patch_channel(&mut self, channel_id: Self::Id<'_>, patch: Self::Patch) -> Result<Self::Channel, DataSetError>;
 
     async fn remove_session(&mut self, user: Self::Id<'_>) -> Result<Self::Channel, DataRemovalError>;
+
+    async fn is_admin(&mut self, channel_id: Self::Id<'_>, user_id: Self::UserID<'_>) -> Result<bool, DataRetrievalError>;
 }
 
 impl Database for rocket_db_pools::Connection<crate::database::Db> {
@@ -62,6 +64,16 @@ impl Database for rocket_db_pools::Connection<crate::database::Db> {
             })
     }
 
+    async fn insert_channel(&mut self, channel: Self::Insert) -> Result<Self::Channel, DataInsertionError> {
+        diesel::insert_into(channels::table)
+            .values(channel)
+            .returning(channels::all_columns)
+            .get_result(self)
+            .await
+            .map_err(|e| DataInsertionError::InternalError)
+    }
+
+
     async fn patch_channel(&mut self, channel_id: Self::Id<'_>, mut patch: Self::Patch) -> Result<Self::Channel, DataSetError> {
         patch.id = None;
         diesel::update(channels::table)
@@ -76,16 +88,6 @@ impl Database for rocket_db_pools::Connection<crate::database::Db> {
             })
     }
 
-
-    async fn insert_channel(&mut self, channel: Self::Insert) -> Result<Self::Channel, DataInsertionError> {
-        diesel::insert_into(channels::table)
-            .values(channel)
-            .returning(channels::all_columns)
-            .get_result(self)
-            .await
-            .map_err(|e| DataInsertionError::InternalError)
-    }
-
     async fn remove_session(&mut self, channel_id: Self::Id<'_>) -> Result<Self::Channel, DataRemovalError> {
         diesel::delete(channels::table)
             .filter(channels::id.eq(channel_id))
@@ -96,4 +98,19 @@ impl Database for rocket_db_pools::Connection<crate::database::Db> {
                 _ => DataRemovalError::InternalError,
             })
     }
+
+    async fn is_admin(&mut self, channel_id: Self::Id<'_>, user_id: Self::UserID<'_>) -> Result<bool, DataRetrievalError> {
+        let role: String = schema::user_channel::table
+            .select(schema::user_channel::role)
+            .filter(schema::user_channel::user_id.eq(user_id))
+            .filter(schema::user_channel::channel_id.eq(channel_id))
+            .get_result(self)
+            .await
+            .map_err(|e| match e {
+                Error::NotFound => DataRetrievalError::NotFound,
+                _ => DataRetrievalError::InternalError,
+            })?;
+        Ok(role == "admin")
+    }
 }
+

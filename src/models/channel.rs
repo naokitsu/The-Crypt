@@ -21,7 +21,6 @@ use crate::models::user::UserError;
 pub struct Channel {
     pub id: uuid::Uuid,
     pub name: String,
-    pub admin_id: uuid::Uuid,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, AsChangeset)]
@@ -31,7 +30,6 @@ pub struct Channel {
 pub struct Patch {
     pub id: Option<uuid::Uuid>,
     pub name: Option<String>,
-    pub admin_id: Option<uuid::Uuid>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Insertable)]
@@ -40,7 +38,6 @@ pub struct Patch {
 #[serde(crate = "rocket::serde")]
 pub struct Insert {
     pub name: String,
-    pub admin_id: uuid::Uuid,
 }
 
 #[async_trait]
