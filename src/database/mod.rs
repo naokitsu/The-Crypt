@@ -1,6 +1,3 @@
-use diesel::deserialize::FromSqlRow;
-use diesel::RunQueryDsl;
-use rocket_contrib::databases::diesel::Queryable;
 use rocket_db_pools::{diesel, Database};
 mod auth;
 pub(crate) mod token;

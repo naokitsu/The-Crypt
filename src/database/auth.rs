@@ -1,9 +1,7 @@
-use std::io::Write;
 use diesel::result::Error;
-use rocket::http::hyper::body::HttpBody;
-use crate::database::{auth, Db};
+use crate::database::{Db};
 use crate::database::token::Database;
-use crate::models::{LoginError, RegisterError, Token, User};
+use crate::models::{LoginError, RegisterError, Token,};
 
 pub(crate) trait AuthDatabase<T: super::token::Database = Self> {
     async fn login(&mut self, login: &str, password: &str) -> Result<Token, LoginError>;
@@ -41,11 +39,11 @@ impl From<TokenVerificationError> for LoginError {
 }
 
 impl AuthDatabase for rocket_db_pools::Connection<Db> {
-    async fn login(&mut self, login: &str, password: &str) -> Result<Token, LoginError> {
+    async fn login(&mut self, login: &str, _password: &str) -> Result<Token, LoginError> {
         use rocket_db_pools::diesel::prelude::*;
-        use crate::schema::{users, secrets};
+        use crate::schema::{users};
 
-        let (db_id) = users::table
+        let db_id = users::table
             .select(users::id)
             .filter(users::username.eq(login))
             .first::<uuid::Uuid>(self)
@@ -56,7 +54,7 @@ impl AuthDatabase for rocket_db_pools::Connection<Db> {
             })?;
 
         let mut key: [u8; 32] = [0; 32];
-        let nonce: [u8; 32] = [0; 32];
+        let _nonce: [u8; 32] = [0; 32];
         unsafe { // TODO
             std::ptr::copy(login.as_ptr(), key.as_mut_ptr(), std::cmp::min(login.len(), 32));
         }
@@ -72,16 +70,16 @@ impl AuthDatabase for rocket_db_pools::Connection<Db> {
         }
     }
 
-    async fn register(&mut self, login: &str, password: &str) -> Result<Token, RegisterError> {
+    async fn register(&mut self, login: &str, _password: &str) -> Result<Token, RegisterError> {
         use rocket_db_pools::diesel::prelude::*;
-        use crate::schema::{users, secrets};
+        use crate::schema::{users};
 
-        let (db_id, db_is_admin) = rocket_db_pools::diesel::insert_into(users::table)
+        let db_id = rocket_db_pools::diesel::insert_into(users::table)
             .values((
                 users::username.eq(login),
             ))
-            .returning((users::id, users::is_admin))
-            .get_result::<(uuid::Uuid, bool)>(self)
+            .returning(users::id)
+            .get_result::<uuid::Uuid>(self)
             .await
             .map_err(|err| match err {
                 Error::DatabaseError(rocket_db_pools::diesel::result::DatabaseErrorKind::UniqueViolation, _) =>
@@ -94,7 +92,7 @@ impl AuthDatabase for rocket_db_pools::Connection<Db> {
         unsafe { // TODO
             std::ptr::copy(login.as_ptr(), key.as_mut_ptr(), std::cmp::min(login.len(), 32));
         }
-        self.insert_session(db_id, key, nonce, true)
+        self.insert_session(db_id, key, nonce)
             .await
             .map_err(|_| RegisterError::InternalServerError)?;
         Ok(Token{access_token:login.to_string()})

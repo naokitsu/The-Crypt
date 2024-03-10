@@ -1,12 +1,10 @@
 use diesel::pg::PgValue;
-use diesel::query_builder::NoFromClause;
 use diesel::{AsChangeset, Insertable, Queryable};
 use rocket::data::{FromData, Outcome};
 use rocket::{Data, Request};
 use rocket::response::Responder;
 use rocket::serde::{Deserialize, Serialize};
 use rocket::serde::json::Json;
-use crate::models::User;
 use crate::schema;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Queryable)]

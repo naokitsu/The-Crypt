@@ -1,9 +1,10 @@
 use rocket::serde::json::Json;
 use rocket_db_pools::Connection;
-use crate::database::{Db, AuthDatabase};
+use crate::database::{Db};
 use crate::models;
-use crate::models::{Channel, ChannelError, UUIDWrapper, Member, User, UserRole, MemberInsert};
+use crate::models::{Channel, ChannelError, Member, User, UserRole, MemberInsert};
 use crate::database::channels::{Database, DataInsertionError, DataRemovalError, DataRetrievalError, DataSetError};
+
 
 #[get("/channels/<id>")]
 pub async fn get_channel_by_id(id: models::UUIDWrapper, user: User, mut db: Connection<Db>) -> Result<Channel, ChannelError> {
@@ -57,7 +58,7 @@ pub async fn remove_channel_by_id(id: models::UUIDWrapper, user: User, mut db: C
 }
 
 #[post("/channels", format = "json", data = "<channel>")]
-pub async fn create_channel(mut channel: models::ChannelInsert, user: User, mut db: Connection<Db>) -> Result<Channel, ChannelError> {
+pub async fn create_channel(channel: models::ChannelInsert, user: User, mut db: Connection<Db>) -> Result<Channel, ChannelError> {
     let new_channel = db.insert_channel(channel)
         .await
         .map_err(|e| match e {
@@ -110,6 +111,17 @@ pub async fn get_channel_member(channel_id: models::UUIDWrapper, user_id: models
 
 #[post("/channels/<channel_id>/members", format = "json", data = "<member>")]
 pub async fn add_channel_member(channel_id: models::UUIDWrapper, member: MemberInsert, user: User, mut db: Connection<Db>) -> Result<Member, ChannelError> {
+    db.get_member(channel_id.into(), user.id)
+        .await
+        .map_err(|e| match e {
+            DataRetrievalError::NotFound => ChannelError::NotFound,
+            DataRetrievalError::InternalError => ChannelError::InternalServerError,
+        })?;
 
-    todo!()
+    db.insert_member(channel_id.into(), member)
+        .await
+        .map_err(|e| match e {
+            DataInsertionError::AlreadyExists => ChannelError::Conflict,
+            DataInsertionError::InternalError => ChannelError::InternalServerError,
+        })
 }

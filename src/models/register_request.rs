@@ -5,8 +5,6 @@ use rocket::response::Responder;
 use rocket::serde::{Deserialize, Serialize};
 use rocket::serde::json::Json;
 use serde::ser::SerializeStruct;
-use crate::models::LoginRequest;
-
 
 #[derive(Deserialize, Debug, Clone, Copy, PartialEq)]
 #[serde(crate = "rocket::serde")]

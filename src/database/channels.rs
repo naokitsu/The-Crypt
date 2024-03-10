@@ -1,12 +1,6 @@
-use diesel::expression::AsExpression;
-use diesel::pg::{Pg, PgValue};
-use diesel::query_builder::NoFromClause;
 use diesel::result::Error;
-use rocket_contrib::databases::diesel::result::Error::DeserializationError;
 use rocket_db_pools::diesel::prelude::*;
-use rocket_db_pools::diesel::{RunQueryDsl, QueryDsl};
 use crate::{models, schema};
-use crate::models::UserRole;
 use crate::schema::channels;
 
 
@@ -49,7 +43,7 @@ pub trait Database {
 
     async fn remove_session(&mut self, user: Self::Id<'_>) -> Result<Self::Channel, DataRemovalError>;
 
-    async fn get_members(&mut self, channel_id: Self::Id<'_>) -> Result<Vec<(Self::Member)>, DataRetrievalError>;
+    async fn get_members(&mut self, channel_id: Self::Id<'_>) -> Result<Vec<Self::Member>, DataRetrievalError>;
 
     async fn get_member(&mut self, channel_id: Self::Id<'_>, user_id: Self::UserID<'_>) -> Result<Self::Member, DataRetrievalError>;
 
@@ -88,7 +82,7 @@ impl Database for rocket_db_pools::Connection<crate::database::Db> {
             .returning(channels::all_columns)
             .get_result(self)
             .await
-            .map_err(|e| DataInsertionError::InternalError)
+            .map_err(|_| DataInsertionError::InternalError)
     }
 
 
@@ -117,7 +111,7 @@ impl Database for rocket_db_pools::Connection<crate::database::Db> {
             })
     }
 
-    async fn get_members(&mut self, channel_id: Self::Id<'_>) -> Result<Vec<(Self::Member)>, DataRetrievalError> {
+    async fn get_members(&mut self, channel_id: Self::Id<'_>) -> Result<Vec<Self::Member>, DataRetrievalError> {
         schema::user_channel::table
             .filter(schema::user_channel::channel_id.eq(channel_id))
             .get_results(self)

@@ -1,18 +1,11 @@
-use std::io::Write;
-use std::str::FromStr;
-use rocket::serde::{Deserialize, Serialize};
-use diesel::{AsChangeset, Insertable, Queryable};
 use rocket::data::{FromData, Outcome};
-use rocket::{Data, Request};
 use rocket::http::Status;
-use rocket::request::FromParam;
+use rocket::{Data, Request};
 use rocket::response::Responder;
+use rocket::serde::{Deserialize, Serialize};
 use rocket::serde::json::Json;
-use rocket_db_pools::Connection;
+use rocket_db_pools::diesel::{AsChangeset, Insertable, Queryable};
 use serde::ser::SerializeStruct;
-use crate::database::Db;
-use crate::models::{UUIDWrapper, LoginError, LoginRequest, RegisterRequest};
-use crate::models::user::UserError;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Queryable, Insertable)]
 #[diesel(table_name = crate::schema::channels)]
@@ -51,7 +44,6 @@ impl<'r> Responder<'r, 'static> for Channel {
 pub enum Error {
     NotFound,
     Unauthorized,
-    Forbidden,
     Conflict,
     InternalServerError,
 }
@@ -72,9 +64,6 @@ impl<'r> Responder<'r, 'static> for Error {
             Error::Conflict => {
                 (Status::Conflict, Json(self)).respond_to(_request)
             },
-            Error::Forbidden => {
-                (Status::Forbidden, Json(self)).respond_to(_request)
-            },
         }
     }
 }
@@ -89,7 +78,6 @@ impl Serialize for Error {
             Error::Unauthorized => state.serialize_field("message", "Incorrect username or password")?,
             Error::NotFound => state.serialize_field("message", "Channel not found")?,
             Error::Conflict => state.serialize_field("message", "Channel already exists")?,
-            Error::Forbidden => state.serialize_field("message", "You are not an admin of the channel")?,
         }
         state.end()
     }

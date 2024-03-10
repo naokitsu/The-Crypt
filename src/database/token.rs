@@ -1,23 +1,21 @@
-use diesel::QueryDsl;
 use diesel::result::Error;
-use crate::schema::sessions;
 
 pub(crate) enum DataRetrievalError {
     NotFound,
     InternalError,
 }
 
-pub(super) enum DataInsertionError {
+pub(crate) enum DataInsertionError {
     AlreadyExists,
     InternalError,
 }
 
-pub(super) enum DataSetError {
+pub(crate) enum DataSetError {
     InvalidSession,
     InternalError,
 }
 
-pub(super) enum DataRemovalError {
+pub(crate) enum DataRemovalError {
     InvalidSession,
     InternalError,
 }
@@ -42,7 +40,6 @@ pub trait Database {
         user: Self::Id<'_>,
         key: [u8; 32],
         nonce: [u8; 32],
-        active: bool,
     ) -> Result<(), DataInsertionError>;
 
     async fn remove_session(&mut self, user: Self::Id<'_>, key: [u8; 32]) -> Result<(), DataRemovalError>;
@@ -109,7 +106,7 @@ impl Database for rocket_db_pools::Connection<crate::database::Db> {
             .map(|_| ())
     }
 
-    async fn insert_session(&mut self, user: Self::Id<'_>, key: [u8; 32], nonce: [u8; 32], active: bool) -> Result<(), DataInsertionError> {
+    async fn insert_session(&mut self, user: Self::Id<'_>, key: [u8; 32], nonce: [u8; 32]) -> Result<(), DataInsertionError> {
         use rocket_db_pools::diesel::prelude::*;
         use crate::schema::sessions;
 

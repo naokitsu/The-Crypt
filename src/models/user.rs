@@ -1,16 +1,14 @@
 use diesel::Queryable;
-use diesel::result::Error;
-use rocket::http::{Header, Status};
+use rocket::http::{Status};
 use rocket::Request;
 use rocket::request::{FromRequest, Outcome};
 use rocket::response::Responder;
 use rocket::serde::{Deserialize, Serialize};
 use rocket_db_pools::Connection;
-use crate::database::{Db, AuthDatabase};
+use crate::database::{Db};
 use rocket::serde::json::Json;
 use serde::ser::SerializeStruct;
 use crate::models::LoginError;
-use crate::schema::{secrets, users};
 use crate::database::token::Database;
 
 
@@ -79,16 +77,16 @@ impl<'r> FromRequest<'r> for User {
             Some(token) => {
                 let token = token;
                 let mut key: [u8; 32] = [0; 32];
-                let nonce: [u8; 32] = [0; 32];
+                let _nonce: [u8; 32] = [0; 32];
                 unsafe { // TODO
                     std::ptr::copy(token.as_ptr(), key.as_mut_ptr(), std::cmp::min(token.len(), 32));
                 }
 
                 // ------ It is so cursed ---------
                 use rocket_db_pools::diesel::prelude::*;
-                use crate::schema::{users, secrets};
+                use crate::schema::{users};
 
-                let (user) = users::table
+                let user = users::table
                     .filter(users::username.eq(token))
                     .first::<User>(&mut connection)
                     .await;
