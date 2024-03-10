@@ -11,7 +11,7 @@ use rocket::serde::json::Json;
 use rocket_db_pools::Connection;
 use serde::ser::SerializeStruct;
 use crate::database::Db;
-use crate::models::{ChannelId, LoginError, LoginRequest, RegisterRequest};
+use crate::models::{UUIDWrapper, LoginError, LoginRequest, RegisterRequest};
 use crate::models::user::UserError;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Queryable, Insertable)]

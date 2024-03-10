@@ -33,25 +33,29 @@ pub trait Database {
     type UserID<'a>;
     type Member;
     type Channel;
-    type Patch;
-    type Insert;
+    type ChannelPatch;
+    type ChannelInsert;
+    type MemberPatch;
+    type MemberInsert;
 
     async fn get_channel(&mut self, channel_id: Self::Id<'_>) -> Result<Self::Channel, DataRetrievalError>;
 
     async fn insert_channel(
         &mut self,
-        channel: Self::Insert,
+        channel: Self::ChannelInsert,
     ) -> Result<Self::Channel, DataInsertionError>;
 
-    async fn patch_channel(&mut self, channel_id: Self::Id<'_>, patch: Self::Patch) -> Result<Self::Channel, DataSetError>;
+    async fn patch_channel(&mut self, channel_id: Self::Id<'_>, patch: Self::ChannelPatch) -> Result<Self::Channel, DataSetError>;
 
     async fn remove_session(&mut self, user: Self::Id<'_>) -> Result<Self::Channel, DataRemovalError>;
 
-    async fn get_user_role_in_channel(&mut self, channel_id: Self::Id<'_>, user_id: Self::UserID<'_>) -> Result<UserRole, DataRetrievalError>;
+    async fn get_members(&mut self, channel_id: Self::Id<'_>) -> Result<Vec<(Self::Member)>, DataRetrievalError>;
 
-    async fn insert_user_channel_relation(&mut self, channel_id: Self::Id<'_>, user_id: Self::UserID<'_>, role: UserRole) -> Result<(), DataInsertionError>;
+    async fn get_member(&mut self, channel_id: Self::Id<'_>, user_id: Self::UserID<'_>) -> Result<Self::Member, DataRetrievalError>;
 
-    async fn get_channel_relations(&mut self, channel_id: Self::Id<'_>) -> Result<Vec<(Self::Member)>, DataRetrievalError>;
+    async fn insert_member(&mut self, channel_id: Self::Id<'_>, member: Self::MemberInsert) -> Result<Self::Member, DataInsertionError>;
+
+    async fn patch_member(&mut self, channel_id: Self::Id<'_>, member: Self::MemberPatch) -> Result<Self::Member, DataSetError>;
 }
 
 impl Database for rocket_db_pools::Connection<crate::database::Db> {
@@ -60,8 +64,8 @@ impl Database for rocket_db_pools::Connection<crate::database::Db> {
     type Member = models::Member;
 
     type Channel = models::Channel;
-    type Patch = models::ChannelPatch;
-    type Insert = models::ChannelInsert;
+    type ChannelPatch = models::ChannelPatch;
+    type ChannelInsert = models::ChannelInsert;
 
     async fn get_channel(&mut self, channel_id: Self::Id<'_>) -> Result<Self::Channel, DataRetrievalError> {
         channels::table
@@ -74,7 +78,7 @@ impl Database for rocket_db_pools::Connection<crate::database::Db> {
             })
     }
 
-    async fn insert_channel(&mut self, channel: Self::Insert) -> Result<Self::Channel, DataInsertionError> {
+    async fn insert_channel(&mut self, channel: Self::ChannelInsert) -> Result<Self::Channel, DataInsertionError> {
         diesel::insert_into(channels::table)
             .values(channel)
             .returning(channels::all_columns)
@@ -84,7 +88,7 @@ impl Database for rocket_db_pools::Connection<crate::database::Db> {
     }
 
 
-    async fn patch_channel(&mut self, channel_id: Self::Id<'_>, mut patch: Self::Patch) -> Result<Self::Channel, DataSetError> {
+    async fn patch_channel(&mut self, channel_id: Self::Id<'_>, mut patch: Self::ChannelPatch) -> Result<Self::Channel, DataSetError> {
         patch.id = None;
         diesel::update(channels::table)
             .set(patch)
@@ -109,7 +113,7 @@ impl Database for rocket_db_pools::Connection<crate::database::Db> {
             })
     }
 
-    async fn get_user_role_in_channel(&mut self, channel_id: Self::Id<'_>, user_id: Self::UserID<'_>) -> Result<UserRole, DataRetrievalError> {
+    async fn get_member(&mut self, channel_id: Self::Id<'_>, user_id: Self::UserID<'_>) -> Result<Self::Member, DataRetrievalError> {
         schema::user_channel::table
             .select(schema::user_channel::role)
             .filter(schema::user_channel::user_id.eq(user_id))
@@ -122,7 +126,7 @@ impl Database for rocket_db_pools::Connection<crate::database::Db> {
             })
     }
 
-    async fn insert_user_channel_relation(&mut self, channel_id: Self::Id<'_>, user_id: Self::UserID<'_>, role: UserRole) -> Result<(), DataInsertionError> {
+    async fn insert_member(&mut self, channel_id: Self::Id<'_>, user_id: Self::UserID<'_>, role: UserRole) -> Result<Self::Member, DataInsertionError> {
         let _ = diesel::insert_into(schema::user_channel::table)
             .values((schema::user_channel::user_id.eq(user_id), schema::user_channel::channel_id.eq(channel_id), schema::user_channel::role.eq(role)))
             .execute(self)
@@ -133,7 +137,7 @@ impl Database for rocket_db_pools::Connection<crate::database::Db> {
         todo!()
     }
 
-    async fn get_channel_relations(&mut self, channel_id: Self::Id<'_>) -> Result<Vec<(Self::Member)>, DataRetrievalError> {
+    async fn get_members(&mut self, channel_id: Self::Id<'_>) -> Result<Vec<(Self::Member)>, DataRetrievalError> {
         schema::user_channel::table
             .filter(schema::user_channel::channel_id.eq(channel_id))
             .get_results(self)

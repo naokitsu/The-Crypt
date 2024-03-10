@@ -19,7 +19,7 @@ pub struct Member {
 #[serde(crate = "rocket::serde")]
 pub enum UserRole {
     Admin,
-    User,
+    Member,
 }
 
 impl diesel::Queryable<schema::sql_types::UserRole, diesel::pg::Pg> for UserRole {
@@ -34,7 +34,7 @@ impl diesel::deserialize::FromSql<schema::sql_types::UserRole, diesel::pg::Pg> f
     fn from_sql(value: PgValue<'_>) -> diesel::deserialize::Result<Self> {
         match value.as_bytes() {
             b"admin" => Ok(UserRole::Admin),
-            _ => Ok(UserRole::User),
+            _ => Ok(UserRole::Member),
         }
     }
 }
@@ -43,7 +43,7 @@ impl diesel::query_builder::QueryFragment<diesel::pg::Pg> for UserRole {
     fn walk_ast<'b>(&'b self, mut out: diesel::query_builder::AstPass<'_, 'b, diesel::pg::Pg>) -> diesel::QueryResult<()> {
         out.push_sql(match self {
             UserRole::Admin => "admin",
-            UserRole::User => "user",
+            UserRole::Member => "member",
         });
         Ok(())
     }

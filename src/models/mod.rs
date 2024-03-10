@@ -21,7 +21,7 @@ pub use channel::Patch as ChannelPatch;
 pub use channel::Insert as ChannelInsert;
 pub use channel::Error as ChannelError;
 
-pub use uuid::ChannelId;
+pub use uuid::UUIDWrapper;
 
 pub use member::Member;
 pub use member::UserRole;
