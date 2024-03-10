@@ -2,7 +2,7 @@ use rocket::serde::json::Json;
 use rocket_db_pools::Connection;
 use crate::database::{Db, AuthDatabase};
 use crate::models;
-use crate::models::{Channel, ChannelError, UUIDWrapper, Member, User, UserRole};
+use crate::models::{Channel, ChannelError, UUIDWrapper, Member, User, UserRole, MemberInsert};
 use crate::database::channels::{Database, DataInsertionError, DataRemovalError, DataRetrievalError, DataSetError};
 
 #[get("/channels/<id>")]
@@ -30,7 +30,7 @@ pub async fn patch_channel_by_id(id: models::UUIDWrapper, user: User, patch: mod
             DataRetrievalError::NotFound => ChannelError::NotFound,
             DataRetrievalError::InternalError => ChannelError::InternalServerError,
         })
-        .and_then(|role| if role == UserRole::Admin { Ok(()) } else { Err(ChannelError::Unauthorized) })?;
+        .and_then(|member| if member.role == UserRole::Admin { Ok(()) } else { Err(ChannelError::Unauthorized) })?;
 
     db.patch_channel(id.into(), patch)
         .await
@@ -47,7 +47,7 @@ pub async fn remove_channel_by_id(id: models::UUIDWrapper, user: User, mut db: C
             DataRetrievalError::NotFound => ChannelError::NotFound,
             DataRetrievalError::InternalError => ChannelError::InternalServerError,
         })
-        .and_then(|role| if role == UserRole::Admin { Ok(()) } else { Err(ChannelError::Unauthorized) })?;
+        .and_then(|member| if member.role == UserRole::Admin { Ok(()) } else { Err(ChannelError::Unauthorized) })?;
 
     db.remove_session(id.into())
         .await
@@ -65,7 +65,7 @@ pub async fn create_channel(mut channel: models::ChannelInsert, user: User, mut 
             DataInsertionError::InternalError => ChannelError::InternalServerError,
         })?;
 
-    db.insert_member(new_channel.id, user.id, UserRole::Admin)
+    db.insert_member(new_channel.id, MemberInsert { user_id: user.id, role: Some(UserRole::Admin) })
         .await
         .map_err(|e| match e {
             _ => ChannelError::InternalServerError,
@@ -109,7 +109,7 @@ pub async fn get_channel_member(channel_id: models::UUIDWrapper, user_id: models
 }
 
 #[post("/channels/<channel_id>/members", format = "json", data = "<member>")]
-pub async fn add_channel_member(channel_id: models::UUIDWrapper, member: Member, user: User, mut db: Connection<Db>) -> Result<Member, ChannelError> {
+pub async fn add_channel_member(channel_id: models::UUIDWrapper, member: MemberInsert, user: User, mut db: Connection<Db>) -> Result<Member, ChannelError> {
 
     todo!()
 }

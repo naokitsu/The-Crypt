@@ -1,7 +1,12 @@
 use diesel::pg::PgValue;
 use diesel::query_builder::NoFromClause;
-use diesel::Queryable;
+use diesel::{AsChangeset, Insertable, Queryable};
+use rocket::data::{FromData, Outcome};
+use rocket::{Data, Request};
+use rocket::response::Responder;
 use rocket::serde::{Deserialize, Serialize};
+use rocket::serde::json::Json;
+use crate::models::User;
 use crate::schema;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Queryable)]
@@ -14,6 +19,23 @@ pub struct Member {
     pub role: UserRole,
 }
 
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, AsChangeset)]
+#[diesel(table_name = crate::schema::user_channel)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+#[serde(crate = "rocket::serde")]
+pub struct Patch {
+    pub role: Option<UserRole>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Insertable)]
+#[diesel(table_name = crate::schema::user_channel)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+#[serde(crate = "rocket::serde")]
+pub struct Insert {
+    pub user_id: uuid::Uuid,
+    pub role: Option<UserRole>,
+}
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(crate = "rocket::serde")]
@@ -58,6 +80,32 @@ impl diesel::Expression for UserRole {
     type SqlType = schema::sql_types::UserRole;
 }
 
-impl diesel::AppearsOnTable<NoFromClause> for UserRole {
+impl<T> diesel::AppearsOnTable<T> for UserRole {
 
+}
+
+#[async_trait]
+impl<'r> Responder<'r, 'static> for Member {
+    fn respond_to(self, request: &'r Request<'_>) -> rocket::response::Result<'static> {
+        Json(self).respond_to(request)
+    }
+}
+
+#[async_trait]
+impl<'r> FromData<'r> for Patch {
+    type Error = rocket::serde::json::Error<'r>;
+
+    async fn from_data(req: &'r Request<'_>, data: Data<'r>) -> Outcome<'r, Self> {
+        Json::from_data(req, data).await.map(|json: Json<Self>| json.into_inner())
+    }
+}
+
+
+#[async_trait]
+impl<'r> FromData<'r> for Insert {
+    type Error = rocket::serde::json::Error<'r>;
+
+    async fn from_data(req: &'r Request<'_>, data: Data<'r>) -> Outcome<'r, Self> {
+        Json::from_data(req, data).await.map(|json: Json<Self>| json.into_inner())
+    }
 }

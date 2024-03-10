@@ -25,3 +25,5 @@ pub use uuid::UUIDWrapper;
 
 pub use member::Member;
 pub use member::UserRole;
+pub use member::Patch as MemberPatch;
+pub use member::Insert as MemberInsert;

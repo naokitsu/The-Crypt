@@ -67,6 +67,10 @@ impl Database for rocket_db_pools::Connection<crate::database::Db> {
     type ChannelPatch = models::ChannelPatch;
     type ChannelInsert = models::ChannelInsert;
 
+    type MemberPatch = models::MemberPatch;
+
+    type MemberInsert = models::MemberInsert;
+
     async fn get_channel(&mut self, channel_id: Self::Id<'_>) -> Result<Self::Channel, DataRetrievalError> {
         channels::table
             .filter(channels::id.eq(channel_id))
@@ -113,9 +117,19 @@ impl Database for rocket_db_pools::Connection<crate::database::Db> {
             })
     }
 
+    async fn get_members(&mut self, channel_id: Self::Id<'_>) -> Result<Vec<(Self::Member)>, DataRetrievalError> {
+        schema::user_channel::table
+            .filter(schema::user_channel::channel_id.eq(channel_id))
+            .get_results(self)
+            .await
+            .map_err(|e| match e {
+                Error::NotFound => DataRetrievalError::NotFound,
+                _ => DataRetrievalError::InternalError,
+            })
+    }
+
     async fn get_member(&mut self, channel_id: Self::Id<'_>, user_id: Self::UserID<'_>) -> Result<Self::Member, DataRetrievalError> {
         schema::user_channel::table
-            .select(schema::user_channel::role)
             .filter(schema::user_channel::user_id.eq(user_id))
             .filter(schema::user_channel::channel_id.eq(channel_id))
             .get_result(self)
@@ -126,25 +140,25 @@ impl Database for rocket_db_pools::Connection<crate::database::Db> {
             })
     }
 
-    async fn insert_member(&mut self, channel_id: Self::Id<'_>, user_id: Self::UserID<'_>, role: UserRole) -> Result<Self::Member, DataInsertionError> {
-        let _ = diesel::insert_into(schema::user_channel::table)
-            .values((schema::user_channel::user_id.eq(user_id), schema::user_channel::channel_id.eq(channel_id), schema::user_channel::role.eq(role)))
-            .execute(self)
+    async fn insert_member(&mut self, channel_id: Self::Id<'_>, member: Self::MemberInsert) -> Result<Self::Member, DataInsertionError> {
+        diesel::insert_into(schema::user_channel::table)
+            .values(member)
+            .returning(schema::user_channel::all_columns)
+            .get_result(self)
             .await
-            .map_err(|e| match e {
-                _ => DataInsertionError::InternalError,
-            });
-        todo!()
+            .map_err(|e| DataInsertionError::InternalError)
     }
 
-    async fn get_members(&mut self, channel_id: Self::Id<'_>) -> Result<Vec<(Self::Member)>, DataRetrievalError> {
-        schema::user_channel::table
+    async fn patch_member(&mut self, channel_id: Self::Id<'_>, member: Self::MemberPatch) -> Result<Self::Member, DataSetError> {
+        diesel::update(schema::user_channel::table)
+            .set(member)
             .filter(schema::user_channel::channel_id.eq(channel_id))
-            .get_results(self)
+            .returning(schema::user_channel::all_columns)
+            .get_result(self)
             .await
             .map_err(|e| match e {
-                Error::NotFound => DataRetrievalError::NotFound,
-                _ => DataRetrievalError::InternalError,
+                Error::DatabaseError(_, _) => DataSetError::InternalError,
+                _ => DataSetError::InternalError,
             })
     }
 }
