@@ -4,6 +4,7 @@ pub mod user;
 pub mod token;
 mod channel;
 mod uuid;
+mod member;
 
 pub use login_request::LoginRequest;
 pub use login_request::LoginError;
@@ -21,3 +22,6 @@ pub use channel::Insert as ChannelInsert;
 pub use channel::Error as ChannelError;
 
 pub use uuid::ChannelId;
+
+pub use member::Member;
+pub use member::UserRole;

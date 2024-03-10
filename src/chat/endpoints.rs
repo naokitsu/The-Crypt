@@ -2,9 +2,9 @@ use rocket::serde::json::Json;
 use rocket_db_pools::Connection;
 use crate::database::{Db, AuthDatabase};
 use crate::models;
-use crate::models::{Channel, ChannelError, ChannelId, User};
+use crate::models::{Channel, ChannelError, ChannelId, Member, User, UserRole};
 use crate::schema::messages::channel_id;
-use crate::database::channels::{Database, DataInsertionError, DataRemovalError, DataRetrievalError, DataSetError, UserRole};
+use crate::database::channels::{Database, DataInsertionError, DataRemovalError, DataRetrievalError, DataSetError};
 
 #[get("/channels/<id>")]
 pub async fn get_channel_by_id(id: models::ChannelId, user: User, mut db: Connection<Db>) -> Result<Channel, ChannelError> {
@@ -59,12 +59,28 @@ pub async fn remove_channel_by_id(id: models::ChannelId, user: User, mut db: Con
 
 #[post("/channels", format = "json", data = "<channel>")]
 pub async fn create_channel(mut channel: models::ChannelInsert, user: User, mut db: Connection<Db>) -> Result<Channel, ChannelError> {
-    db.insert_channel(channel)
+    let new_channel = db.insert_channel(channel)
         .await
         .map_err(|e| match e {
             DataInsertionError::AlreadyExists => ChannelError::Conflict,
             DataInsertionError::InternalError => ChannelError::InternalServerError,
+        })?;
+
+    db.insert_user_channel_relation(new_channel.id, user.id, UserRole::Admin)
+        .await
+        .map_err(|e| match e {
+            _ => ChannelError::InternalServerError,
+        })?;
+    Ok(new_channel)
+}
+
+#[get("/channels/<id>/members")]
+pub async fn get_channel_members(id: models::ChannelId, mut db: Connection<Db>) -> Result<Json<Vec<Member>>, ChannelError> {
+    db.get_channel_relations(id.into())
+        .await
+        .map_err(|e| match e {
+            DataRetrievalError::NotFound => ChannelError::NotFound,
+            DataRetrievalError::InternalError => ChannelError::InternalServerError,
         })
-
-
+        .map(Json)
 }
