@@ -41,7 +41,7 @@ pub trait Database {
 
     async fn patch_channel(&mut self, channel_id: Self::Id<'_>, patch: Self::ChannelPatch) -> Result<Self::Channel, DataSetError>;
 
-    async fn remove_session(&mut self, user: Self::Id<'_>) -> Result<Self::Channel, DataRemovalError>;
+    async fn remove_channel(&mut self, user: Self::Id<'_>) -> Result<Self::Channel, DataRemovalError>;
 
     async fn get_members(&mut self, channel_id: Self::Id<'_>) -> Result<Vec<Self::Member>, DataRetrievalError>;
 
@@ -49,7 +49,8 @@ pub trait Database {
 
     async fn insert_member(&mut self, channel_id: Self::Id<'_>, member: Self::MemberInsert) -> Result<Self::Member, DataInsertionError>;
 
-    async fn patch_member(&mut self, channel_id: Self::Id<'_>, member: Self::MemberPatch) -> Result<Self::Member, DataSetError>;
+    async fn patch_member(&mut self, channel_id: Self::Id<'_>, user_id: Self::UserID<'_>, member: Self::MemberPatch) -> Result<Self::Member, DataSetError>;
+    async fn remove_member(&mut self, channel_id: Self::Id<'_>, user_id: Self::UserID<'_>) -> Result<Self::Member, DataRemovalError>;
 }
 
 impl Database for rocket_db_pools::Connection<crate::database::Db> {
@@ -87,7 +88,6 @@ impl Database for rocket_db_pools::Connection<crate::database::Db> {
 
 
     async fn patch_channel(&mut self, channel_id: Self::Id<'_>, mut patch: Self::ChannelPatch) -> Result<Self::Channel, DataSetError> {
-        patch.id = None;
         diesel::update(channels::table)
             .set(patch)
             .filter(channels::id.eq(channel_id))
@@ -100,7 +100,7 @@ impl Database for rocket_db_pools::Connection<crate::database::Db> {
             })
     }
 
-    async fn remove_session(&mut self, channel_id: Self::Id<'_>) -> Result<Self::Channel, DataRemovalError> {
+    async fn remove_channel(&mut self, channel_id: Self::Id<'_>) -> Result<Self::Channel, DataRemovalError> {
         diesel::delete(channels::table)
             .filter(channels::id.eq(channel_id))
             .returning(channels::all_columns)
@@ -143,7 +143,7 @@ impl Database for rocket_db_pools::Connection<crate::database::Db> {
             .map_err(|e| DataInsertionError::InternalError)
     }
 
-    async fn patch_member(&mut self, channel_id: Self::Id<'_>, member: Self::MemberPatch) -> Result<Self::Member, DataSetError> {
+    async fn patch_member(&mut self, channel_id: Self::Id<'_>, user_id: Self::UserID<'_>, member: Self::MemberPatch) -> Result<Self::Member, DataSetError> {
         diesel::update(schema::user_channel::table)
             .set(member)
             .filter(schema::user_channel::channel_id.eq(channel_id))
@@ -155,4 +155,17 @@ impl Database for rocket_db_pools::Connection<crate::database::Db> {
                 _ => DataSetError::InternalError,
             })
     }
+
+    async fn remove_member(&mut self, channel_id: Self::Id<'_>, user_id: Self::UserID<'_>) -> Result<Self::Member, DataRemovalError> {
+        diesel::delete(schema::user_channel::table)
+            .filter(schema::user_channel::channel_id.eq(channel_id))
+            .filter(schema::user_channel::user_id.eq(user_id))
+            .returning(schema::user_channel::all_columns)
+            .get_result(self)
+            .await
+            .map_err(|e| match e {
+                _ => DataRemovalError::InternalError,
+            })
+    }
+
 }

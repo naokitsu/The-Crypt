@@ -2,7 +2,7 @@ use rocket::serde::json::Json;
 use rocket_db_pools::Connection;
 use crate::database::{Db};
 use crate::models;
-use crate::models::{Channel, ChannelError, Member, User, UserRole, MemberInsert};
+use crate::models::{Channel, ChannelError, Member, User, UserRole, MemberInsert, MemberPatch};
 use crate::database::channels::{Database, DataInsertionError, DataRemovalError, DataRetrievalError, DataSetError};
 
 
@@ -50,7 +50,7 @@ pub async fn remove_channel_by_id(id: models::UUIDWrapper, user: User, mut db: C
         })
         .and_then(|member| if member.role == UserRole::Admin { Ok(()) } else { Err(ChannelError::Unauthorized) })?;
 
-    db.remove_session(id.into())
+    db.remove_channel(id.into())
         .await
         .map_err(|e| match e {
             DataRemovalError::InternalError => ChannelError::InternalServerError,
@@ -111,12 +111,16 @@ pub async fn get_channel_member(channel_id: models::UUIDWrapper, user_id: models
 
 #[post("/channels/<channel_id>/members", format = "json", data = "<member>")]
 pub async fn add_channel_member(channel_id: models::UUIDWrapper, member: MemberInsert, user: User, mut db: Connection<Db>) -> Result<Member, ChannelError> {
-    db.get_member(channel_id.into(), user.id)
+    let myself = db.get_member(channel_id.into(), user.id)
         .await
         .map_err(|e| match e {
             DataRetrievalError::NotFound => ChannelError::NotFound,
             DataRetrievalError::InternalError => ChannelError::InternalServerError,
         })?;
+
+    if myself.role != UserRole::Admin && member.role == Some(UserRole::Admin) {
+        return Err(ChannelError::Unauthorized);
+    }
 
     db.insert_member(channel_id.into(), member)
         .await
@@ -124,4 +128,41 @@ pub async fn add_channel_member(channel_id: models::UUIDWrapper, member: MemberI
             DataInsertionError::AlreadyExists => ChannelError::Conflict,
             DataInsertionError::InternalError => ChannelError::InternalServerError,
         })
+}
+
+#[patch("/channels/<channel_id>/members/<user_id>", format = "json", data = "<member>")]
+pub async fn update_channel_member(channel_id: models::UUIDWrapper, user_id: models::UUIDWrapper, member: MemberPatch, user: User, mut db: Connection<Db>) -> Result<Member, ChannelError> {
+    let myself = db.get_member(channel_id.into(), user.id)
+        .await
+        .map_err(|e| match e {
+            DataRetrievalError::NotFound => ChannelError::NotFound,
+            DataRetrievalError::InternalError => ChannelError::InternalServerError,
+        })?;
+
+    if myself.role != UserRole::Admin && member.role == Some(UserRole::Admin) {
+        return Err(ChannelError::Unauthorized);
+    }
+    db.patch_member(channel_id.into(), user_id.into(), member)
+        .await
+        .map_err(|e| match e {
+            DataSetError::InternalError => ChannelError::InternalServerError,
+        })
+}
+
+#[delete("/channels/<channel_id>/members/<user_id>")]
+pub async fn remove_channel_member(channel_id: models::UUIDWrapper, user_id: models::UUIDWrapper, user: User, mut db: Connection<Db>) -> Result<Member, ChannelError> {
+    db.get_member(channel_id.into(), user.id)
+        .await
+        .map_err(|e| match e {
+            DataRetrievalError::NotFound => ChannelError::NotFound,
+            DataRetrievalError::InternalError => ChannelError::InternalServerError,
+        })
+        .and_then(|member| if member.role == UserRole::Admin { Ok(()) } else { Err(ChannelError::Unauthorized) })?;
+
+    db.remove_member(channel_id.into(), user_id.into())
+        .await
+        .map_err(|e| match e {
+            DataRemovalError::InternalError => ChannelError::InternalServerError,
+        })
+
 }

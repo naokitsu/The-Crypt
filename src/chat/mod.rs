@@ -23,6 +23,8 @@ impl ChatService for rocket::Rocket<rocket::Build> {
             endpoints::get_channel_members,
             endpoints::get_channel_member,
             endpoints::add_channel_member,
+            endpoints::update_channel_member,
+            endpoints::remove_channel_member
         ])
     }
 }

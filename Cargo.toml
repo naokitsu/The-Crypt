@@ -5,10 +5,6 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-[target.armv7-unknown-linux-gnueabihf]
-linker = "/usr/bin/clang"
-rustflags = ["-Clink-arg=-fuse-ld=mold", "-Zshare-generics=y"]
-
 [profile.dev]
 opt-level = 1
 [profile.dev.package."*"]

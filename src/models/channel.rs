@@ -21,7 +21,6 @@ pub struct Channel {
 #[diesel(check_for_backend(diesel::pg::Pg))]
 #[serde(crate = "rocket::serde")]
 pub struct Patch {
-    pub id: Option<uuid::Uuid>,
     pub name: Option<String>,
 }
 
