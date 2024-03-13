@@ -31,6 +31,7 @@ pub trait Database {
     type ChannelInsert;
     type MemberPatch;
     type MemberInsert;
+    type Message;
 
     async fn get_channel(&mut self, channel_id: Self::Id<'_>) -> Result<Self::Channel, DataRetrievalError>;
 
@@ -51,6 +52,13 @@ pub trait Database {
 
     async fn patch_member(&mut self, channel_id: Self::Id<'_>, user_id: Self::UserID<'_>, member: Self::MemberPatch) -> Result<Self::Member, DataSetError>;
     async fn remove_member(&mut self, channel_id: Self::Id<'_>, user_id: Self::UserID<'_>) -> Result<Self::Member, DataRemovalError>;
+
+    async fn get_messages(&mut self, channel_id: Self::Id<'_>) -> Result<Vec<Self::Message>, DataRetrievalError>;
+    async fn get_message(&mut self, channels_id: Self::Id<'_>, message_id: Self::Id<'_>) -> Result<Self::Message, DataRetrievalError>;
+
+    async fn insert_message(&mut self, message: Self::Message) -> Result<Self::Message, DataInsertionError>;
+
+    async fn remove_message(&mut self, message_id: Self::Id<'_>) -> Result<Self::Message, DataRemovalError>;
 }
 
 impl Database for rocket_db_pools::Connection<crate::database::Db> {
@@ -65,6 +73,8 @@ impl Database for rocket_db_pools::Connection<crate::database::Db> {
     type MemberPatch = models::MemberPatch;
 
     type MemberInsert = models::MemberInsert;
+
+    type Message = models::Message;
 
     async fn get_channel(&mut self, channel_id: Self::Id<'_>) -> Result<Self::Channel, DataRetrievalError> {
         channels::table
@@ -168,4 +178,47 @@ impl Database for rocket_db_pools::Connection<crate::database::Db> {
             })
     }
 
+    async fn get_messages(&mut self, channel_id: Self::Id<'_>) -> Result<Vec<Self::Message>, DataRetrievalError> {
+        schema::messages::table
+            .filter(schema::messages::channel_id.eq(channel_id))
+            .limit(50)
+            .get_results(self)
+            .await
+            .map_err(|e| match e {
+                Error::NotFound => DataRetrievalError::NotFound,
+                _ => DataRetrievalError::InternalError,
+            })
+    }
+
+    async fn get_message(&mut self, channels_id: Self::Id<'_>, message_id: Self::Id<'_>) -> Result<Self::Message, DataRetrievalError> {
+        schema::messages::table
+            .filter(schema::messages::id.eq(message_id))
+            .filter(schema::messages::channel_id.eq(channels_id))
+            .get_result(self)
+            .await
+            .map_err(|e| match e {
+                Error::NotFound => DataRetrievalError::NotFound,
+                _ => DataRetrievalError::InternalError,
+            })
+    }
+
+    async fn insert_message(&mut self, message: Self::Message) -> Result<Self::Message, DataInsertionError> {
+        diesel::insert_into(schema::messages::table)
+            .values(message)
+            .returning(schema::messages::all_columns)
+            .get_result(self)
+            .await
+            .map_err(|e| DataInsertionError::InternalError)
+    }
+
+    async fn remove_message(&mut self, message_id: Self::Id<'_>) -> Result<Self::Message, DataRemovalError> {
+        diesel::delete(schema::messages::table)
+            .filter(schema::messages::id.eq(message_id))
+            .returning(schema::messages::all_columns)
+            .get_result(self)
+            .await
+            .map_err(|e| match e {
+                _ => DataRemovalError::InternalError,
+            })
+    }
 }

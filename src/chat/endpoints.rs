@@ -2,7 +2,7 @@ use rocket::serde::json::Json;
 use rocket_db_pools::Connection;
 use crate::database::{Db};
 use crate::models;
-use crate::models::{Channel, ChannelError, Member, User, UserRole, MemberInsert, MemberPatch};
+use crate::models::{Channel, ChannelError, Member, User, UserRole, MemberInsert, MemberPatch, Message};
 use crate::database::channels::{Database, DataInsertionError, DataRemovalError, DataRetrievalError, DataSetError};
 
 
@@ -164,5 +164,41 @@ pub async fn remove_channel_member(channel_id: models::UUIDWrapper, user_id: mod
         .map_err(|e| match e {
             DataRemovalError::InternalError => ChannelError::InternalServerError,
         })
-
 }
+
+
+#[get("/channels/<id>/messages")]
+pub async fn get_channel_messages(id: models::UUIDWrapper, user: User, mut db: Connection<Db>) -> Result<Json<Vec<Message>>, ChannelError> {
+    db.get_member(id.into(), user.id)
+        .await
+        .map_err(|e| match e {
+            DataRetrievalError::NotFound => ChannelError::NotFound,
+            DataRetrievalError::InternalError => ChannelError::InternalServerError,
+        })?;
+
+    db.get_messages(id.into())
+        .await
+        .map_err(|e| match e {
+            DataRetrievalError::NotFound => ChannelError::NotFound,
+            DataRetrievalError::InternalError => ChannelError::InternalServerError,
+        })
+        .map(Json)
+}
+
+#[get("/channels/<channel_id>/messages/<message_id>")]
+pub async fn get_channel_message(channel_id: models::UUIDWrapper, message_id: models::UUIDWrapper, user: User, mut db: Connection<Db>) -> Result<Message, ChannelError> {
+    db.get_member(channel_id.into(), user.id)
+        .await
+        .map_err(|e| match e {
+            DataRetrievalError::NotFound => ChannelError::NotFound,
+            DataRetrievalError::InternalError => ChannelError::InternalServerError,
+        })?;
+
+    db.get_message(channel_id.into(), message_id.into())
+        .await
+        .map_err(|e| match e {
+            DataRetrievalError::NotFound => ChannelError::NotFound,
+            DataRetrievalError::InternalError => ChannelError::InternalServerError,
+        })
+}
+

@@ -5,6 +5,7 @@ pub mod token;
 mod channel;
 mod uuid;
 mod member;
+mod message;
 
 pub use login_request::LoginRequest;
 pub use login_request::LoginError;
@@ -27,3 +28,8 @@ pub use member::Member;
 pub use member::UserRole;
 pub use member::Patch as MemberPatch;
 pub use member::Insert as MemberInsert;
+
+pub use message::Message;
+pub use message::Patch as MessagePatch;
+pub use message::Insert as MessageInsert;
+pub use message::Error as MessageError;
