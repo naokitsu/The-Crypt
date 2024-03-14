@@ -150,7 +150,10 @@ impl Database for rocket_db_pools::Connection<crate::database::Db> {
             .returning(schema::user_channel::all_columns)
             .get_result(self)
             .await
-            .map_err(|e| DataInsertionError::InternalError)
+            .map_err(|e| {
+                println!("{:?}", e);
+                DataInsertionError::InternalError
+            })
     }
 
     async fn patch_member(&mut self, channel_id: Self::Id<'_>, user_id: Self::UserID<'_>, member: Self::MemberPatch) -> Result<Self::Member, DataSetError> {

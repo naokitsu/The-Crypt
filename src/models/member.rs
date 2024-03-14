@@ -1,11 +1,17 @@
-use diesel::pg::PgValue;
-use diesel::{AsChangeset, Insertable, Queryable};
+use std::io::Write;
+use rocket_db_pools::diesel::{AsChangeset, Insertable, Queryable};
+use rocket_db_pools::diesel::deserialize::{FromSql, FromSqlRow};
 use rocket::data::{FromData, Outcome};
 use rocket::{Data, Request};
 use rocket::response::Responder;
 use rocket::serde::{Deserialize, Serialize};
 use rocket::serde::json::Json;
+use rocket_contrib::databases::diesel::{deserialize, not_none, SqlType};
+use rocket_contrib::databases::diesel::pg::Pg;
+use rocket_db_pools::diesel::serialize::{self, IsNull, Output, ToSql};
+
 use crate::schema;
+
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Queryable)]
 #[diesel(table_name = crate::schema::users)]
@@ -32,7 +38,7 @@ pub struct Patch {
 #[serde(crate = "rocket::serde")]
 pub struct Insert {
     pub user_id: uuid::Uuid,
-    pub role: Option<UserRole>,
+    pub role: UserRole,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -42,6 +48,27 @@ pub enum UserRole {
     Member,
 }
 
+impl FromSql<schema::sql_types::UserRole, Pg> for UserRole {
+    fn from_sql(bytes: Option<&[u8]>) -> deserialize::Result<Self> {
+        match not_none!(bytes) {
+            b"admin" => Ok(UserRole::Admin),
+            b"member" => Ok(UserRole::Member),
+            _ => Err("Unrecognized enum variant".into()),
+        }
+    }
+}
+
+impl ToSql<schema::sql_types::UserRole, Pg> for UserRole {
+    fn to_sql<'b>(&'b self, out: &mut Output<'b, '_, Pg>) -> serialize::Result {
+        match *self {
+            UserRole::Admin => out.write_all(b"foo")?,
+            UserRole::Member => out.write_all(b"bar")?,
+        }
+        Ok(IsNull::No)
+    }
+}
+
+/*
 impl diesel::Queryable<schema::sql_types::UserRole, diesel::pg::Pg> for UserRole {
     type Row = Self;
 
@@ -57,9 +84,9 @@ impl diesel::deserialize::FromSql<schema::sql_types::UserRole, diesel::pg::Pg> f
             _ => Ok(UserRole::Member),
         }
     }
-}
+}*/
 
-impl diesel::query_builder::QueryFragment<diesel::pg::Pg> for UserRole {
+/*impl diesel::query_builder::QueryFragment<diesel::pg::Pg> for UserRole {
     fn walk_ast<'b>(&'b self, mut out: diesel::query_builder::AstPass<'_, 'b, diesel::pg::Pg>) -> diesel::QueryResult<()> {
         out.push_sql(match self {
             UserRole::Admin => "admin",
@@ -67,7 +94,7 @@ impl diesel::query_builder::QueryFragment<diesel::pg::Pg> for UserRole {
         });
         Ok(())
     }
-}
+}*/
 
 impl diesel::query_builder::QueryId for UserRole {
     type QueryId = uuid::Uuid;

@@ -66,7 +66,8 @@ pub async fn create_channel(channel: models::ChannelInsert, user: User, mut db: 
             DataInsertionError::InternalError => ChannelError::InternalServerError,
         })?;
 
-    db.insert_member(new_channel.id, MemberInsert { user_id: user.id, role: Some(UserRole::Admin) })
+    println!("Hello");
+    db.insert_member(new_channel.id, MemberInsert { user_id: user.id, role: UserRole::Admin })
         .await
         .map_err(|e| match e {
             _ => ChannelError::InternalServerError,
@@ -118,7 +119,7 @@ pub async fn add_channel_member(channel_id: models::UUIDWrapper, member: MemberI
             DataRetrievalError::InternalError => ChannelError::InternalServerError,
         })?;
 
-    if myself.role != UserRole::Admin && member.role == Some(UserRole::Admin) {
+    if myself.role != UserRole::Admin && member.role == UserRole::Admin {
         return Err(ChannelError::Unauthorized);
     }
 
