@@ -202,3 +202,26 @@ pub async fn get_channel_message(channel_id: models::UUIDWrapper, message_id: mo
         })
 }
 
+#[post("/channels/<channel_id>/messages", format = "json", data = "<message>")]
+pub async fn create_channel_message(channel_id: models::UUIDWrapper, message: models::MessageInsert, user: User, mut db: Connection<Db>) -> Result<Message, ChannelError> {
+    db.get_member(channel_id.into(), user.id)
+        .await
+        .map_err(|e| match e {
+            DataRetrievalError::NotFound => ChannelError::NotFound,
+            DataRetrievalError::InternalError => ChannelError::InternalServerError,
+        })?;
+
+    let message = Message {
+        id: uuid::Uuid::new_v4(),
+        user_id: user.id,
+        channel_id: channel_id.into(),
+        content: message.content,
+    };
+
+
+    db.insert_message(message)
+        .await
+        .map_err(|e| match e {
+            _ => ChannelError::InternalServerError,
+        })
+}
