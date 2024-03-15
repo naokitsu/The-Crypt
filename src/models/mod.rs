@@ -1,35 +1,11 @@
-pub mod login_request;
-pub mod register_request;
-pub mod user;
-pub mod token;
-mod channel;
-mod uuid;
-mod member;
-mod message;
+mod user;
 
-pub use login_request::LoginRequest;
-pub use login_request::LoginError;
+trait Model {
+    type Patch;
+    type Insert;
+    type Vector;
 
-pub use register_request::RegisterRequest;
-pub use register_request::RegisterError;
+    fn to_patch(&self) -> Self::Patch;
+    fn to_insert(&self) -> Self::Insert;
+}
 
-pub use user::User;
-
-pub use token::Token;
-
-pub use channel::Channel;
-pub use channel::Patch as ChannelPatch;
-pub use channel::Insert as ChannelInsert;
-pub use channel::Error as ChannelError;
-
-pub use uuid::UUIDWrapper;
-
-pub use member::Member;
-pub use member::UserRole;
-pub use member::Patch as MemberPatch;
-pub use member::Insert as MemberInsert;
-
-pub use message::Message;
-pub use message::Patch as MessagePatch;
-pub use message::Insert as MessageInsert;
-pub use message::Error as MessageError;

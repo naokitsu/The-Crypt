@@ -47,6 +47,7 @@ diesel::table! {
         id -> Uuid,
         #[max_length = 32]
         name -> Varchar,
+        developer -> Bool,
     }
 }
 

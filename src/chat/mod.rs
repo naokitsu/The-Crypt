@@ -1,4 +1,3 @@
-mod endpoints;
 
 use std::fmt::Display;
 use rocket::http::uri::Origin;
@@ -16,7 +15,7 @@ impl ChatService for rocket::Rocket<rocket::Build> {
         where B: TryInto<Origin<'a>> + Clone + Display, B::Error: Display
     {
         self.mount(base, routes![
-            endpoints::get_channel_by_id,
+/*            endpoints::get_channel_by_id,
             endpoints::patch_channel_by_id,
             endpoints::create_channel,
             endpoints::remove_channel_by_id,
@@ -24,7 +23,7 @@ impl ChatService for rocket::Rocket<rocket::Build> {
             endpoints::get_channel_member,
             endpoints::add_channel_member,
             endpoints::update_channel_member,
-            endpoints::remove_channel_member
+            endpoints::remove_channel_member*/
         ])
     }
 }
