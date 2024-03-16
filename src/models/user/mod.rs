@@ -4,7 +4,6 @@ use rocket_db_pools::diesel::{AsChangeset, Insertable, Queryable};
 use rocket::serde::{Deserialize, Serialize};
 
 use crate::models::Model;
-use crate::{use_json_responder, use_json_responder_with_clone};
 
 mod users;
 mod patch;
@@ -39,8 +38,6 @@ struct User<'a> {
     pub is_admin: bool,
 }
 
-// --- Json Responder ---
-
 #[async_trait]
 impl<'r> rocket::response::Responder<'r, 'r> for User<'_> {
     fn respond_to(self, request: &'r rocket::Request<'_>) -> rocket::response::Result<'r> {
@@ -48,13 +45,13 @@ impl<'r> rocket::response::Responder<'r, 'r> for User<'_> {
     }
 }
 
-impl<'r> rocket::data::FromData<'r> for User<'_> {
+#[async_trait]
+impl<'r> rocket::data::FromData<'r> for User<'r> {
     type Error = rocket::serde::json::Error<'r>;
 
     async fn from_data(req: &'r Request<'_>, data: Data<'r>) -> Outcome<'r, Self> {
         use rocket::serde::json::Json;
-        Json::from_data(req, data).await.map(|json: Json<User>| json.into_inner())
+        Json::from_data(req, data).await.map(|json: Json<Self>| json.into_inner())
     }
 }
-
 
