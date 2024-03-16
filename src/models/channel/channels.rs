@@ -2,7 +2,7 @@ use rocket::{Data, Request};
 use rocket::data::Outcome;
 use rocket::serde::{Deserialize, Serialize};
 use serde::Deserializer;
-use crate::impl_from_data_json_for;
+use crate::{impl_from_data_json_for, impl_responder_json_for};
 
 use crate::models::channel::Channel;
 
@@ -16,4 +16,5 @@ impl<'de> Deserialize<'de> for Channels<'de> {
     }
 }
 
+impl_responder_json_for!(Channels<'a>);
 impl_from_data_json_for!(Channels<'a>);

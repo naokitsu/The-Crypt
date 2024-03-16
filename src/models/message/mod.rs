@@ -2,7 +2,7 @@ use rocket::{Data, Request};
 use rocket::data::Outcome;
 use rocket::serde::{Deserialize, Serialize};
 use rocket_db_pools::diesel::Queryable;
-use crate::impl_from_data_json_for;
+use crate::{impl_from_data_json_for, impl_responder_json_for};
 
 use crate::models::Model;
 
@@ -42,11 +42,5 @@ struct Message<'a> {
     pub created_at: chrono::NaiveDateTime,
 }
 
-#[async_trait]
-impl<'r> rocket::response::Responder<'r, 'r> for Message<'_> {
-    fn respond_to(self, request: &'r rocket::Request<'_>) -> rocket::response::Result<'r> {
-        rocket::serde::json::Json(self).respond_to(request)
-    }
-}
-
+impl_responder_json_for!(Message<'a>);
 impl_from_data_json_for!(Message<'a>);

@@ -38,3 +38,25 @@ macro_rules! impl_from_data_json_for {
     };
 }
 
+#[macro_export]
+macro_rules! impl_responder_json_for {
+    ($struct_name:ident) => {
+        #[async_trait]
+        impl<'lt> rocket::response::Responder<'lt, 'lt> for $struct_name {
+            fn respond_to(self, request: &'lt rocket::Request<'_>) -> rocket::response::Result<'lt> {
+                rocket::serde::json::Json(self).respond_to(request)
+            }
+        }
+    };
+
+    ($struct_name:ident<$lt:lifetime>) => {
+        #[async_trait]
+        impl<'lt> rocket::response::Responder<'lt, 'lt> for $struct_name<'lt> {
+            fn respond_to(self, request: &'lt rocket::Request<'_>) -> rocket::response::Result<'lt> {
+                rocket::serde::json::Json(self).respond_to(request)
+            }
+        }
+    };
+}
+
+

@@ -2,7 +2,7 @@ use rocket::{Data, Request};
 use rocket::data::Outcome;
 use rocket::serde::{Deserialize, Serialize};
 use serde::Deserializer;
-use crate::impl_from_data_json_for;
+use crate::{impl_from_data_json_for, impl_responder_json_for};
 
 use crate::models::user::User;
 
@@ -16,4 +16,5 @@ impl<'de> Deserialize<'de> for Users<'de> {
     }
 }
 
+impl_responder_json_for!(Users<'a>);
 impl_from_data_json_for!(Users<'a>);
