@@ -19,6 +19,7 @@ serde_with = { version = "3.7.0", default-features =  false, features = ["chrono
 uuid = { version = "1.7.0", default-features = false, features = ["serde", "v4"] }
 rocket_db_pools = { version = "0.1.0", default-features = false, features = ["diesel_postgres"] }
 chrono = "0.4.35"
+diesel-derive-enum = { version = "2.1.0", features = ["postgres"] }
 
 
 [dependencies.rocket_contrib]

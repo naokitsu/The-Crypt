@@ -1,6 +1,7 @@
 mod user;
 mod channel;
 mod message;
+mod member;
 
 trait Model {
     type Patch;
