@@ -2,6 +2,7 @@ mod user;
 mod channel;
 mod message;
 mod member;
+mod channel_ban;
 
 trait Model {
     type Patch;
