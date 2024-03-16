@@ -2,6 +2,7 @@ use rocket::{Data, Request};
 use rocket::data::Outcome;
 use rocket::serde::{Deserialize, Serialize};
 use rocket_db_pools::diesel::Queryable;
+use crate::impl_from_data_json_for;
 
 use crate::models::Model;
 
@@ -43,13 +44,4 @@ impl<'r> rocket::response::Responder<'r, 'r> for Channel<'_> {
     }
 }
 
-#[async_trait]
-impl<'r> rocket::data::FromData<'r> for Channel<'r> {
-    type Error = rocket::serde::json::Error<'r>;
-
-    async fn from_data(req: &'r Request<'_>, data: Data<'r>) -> Outcome<'r, Self> {
-        use rocket::serde::json::Json;
-        Json::from_data(req, data).await.map(|json: Json<Self>| json.into_inner())
-    }
-}
-
+impl_from_data_json_for!(Channel<'a>);
