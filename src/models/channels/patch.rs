@@ -4,11 +4,11 @@ use rocket::data::Outcome;
 use rocket::serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, AsChangeset)]
-#[diesel(table_name = crate::schema::users)]
+#[diesel(table_name = crate::schema::channels)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 #[serde(crate = "rocket::serde")]
 pub struct Patch<'a> {
-    pub name: Option<&'a str>,
+    pub name: Option<&'a str>
 }
 
 #[async_trait]
