@@ -2,7 +2,7 @@ use rocket::{Data, Request};
 use rocket::data::Outcome;
 use rocket::serde::{Deserialize, Serialize};
 use serde::Deserializer;
-use crate::{impl_from_data_json_for, impl_responder_json_for};
+use crate::{impl_deserialize_for_vector_wrapper, impl_from_data_json_for, impl_responder_json_for};
 
 use crate::models::channel::Channel;
 
@@ -10,11 +10,6 @@ use crate::models::channel::Channel;
 #[serde(crate = "rocket::serde")]
 pub struct Channels<'a>(Vec<Channel<'a>>);
 
-impl<'de> Deserialize<'de> for Channels<'de> {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where D: Deserializer<'de> {
-        Ok(Channels(Vec::<Channel>::deserialize(deserializer)?))
-    }
-}
-
+impl_deserialize_for_vector_wrapper!(Channels<'a>, Channel);
 impl_responder_json_for!(Channels<'a>);
 impl_from_data_json_for!(Channels<'a>);

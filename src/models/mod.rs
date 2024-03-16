@@ -59,4 +59,21 @@ macro_rules! impl_responder_json_for {
     };
 }
 
+#[macro_export]
+macro_rules! impl_deserialize_for_vector_wrapper {
+    ($struct_name:ident, $inner:ident) => {
+        impl<'de> Deserialize<'de> for $struct_name {
+            fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where D: Deserializer<'de> {
+                Ok($struct_name(Vec::<$inner>::deserialize(deserializer)?))
+            }
+        }
+    };
 
+    ($struct_name:ident<$lt:lifetime>, $inner:ident) => {
+        impl<'lt> Deserialize<'lt> for $struct_name<'lt> {
+            fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where D: Deserializer<'lt> {
+                Ok($struct_name(Vec::<$inner>::deserialize(deserializer)?))
+            }
+        }
+    };
+}
