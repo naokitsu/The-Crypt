@@ -2,6 +2,7 @@ use diesel::AsChangeset;
 use rocket::{Data, Request};
 use rocket::data::Outcome;
 use rocket::serde::{Deserialize, Serialize};
+
 use crate::impl_from_data_json_for;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, AsChangeset)]

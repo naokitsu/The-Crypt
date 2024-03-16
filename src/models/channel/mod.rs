@@ -2,8 +2,8 @@ use rocket::{Data, Request};
 use rocket::data::Outcome;
 use rocket::serde::{Deserialize, Serialize};
 use rocket_db_pools::diesel::Queryable;
-use crate::{impl_from_data_json_for, impl_responder_json_for};
 
+use crate::{impl_from_data_json_for, impl_responder_json_for};
 use crate::models::Model;
 
 mod channels;
