@@ -1,5 +1,3 @@
-use rocket::{Data, Request};
-use rocket::data::Outcome;
 use rocket::serde::{Deserialize, Serialize};
 use rocket_db_pools::diesel::Queryable;
 
@@ -25,7 +23,7 @@ impl<'a> Model for Message<'a> {
         Self::Insert {
             user_id: self.user_id,
             channel_id: self.channel_id,
-            content: self.content
+            content: self.content,
         }
     }
 }

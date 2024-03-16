@@ -1,22 +1,17 @@
-use rocket::Request;
 use rocket::response::Responder;
-use rocket::serde::json::Json;
 use serde::ser::SerializeStruct;
 use serde::Serialize;
 
+use crate::impl_responder_json_for;
+
 #[derive(Debug, Clone, PartialEq)]
-pub struct Token {
-    pub access_token: String,
+pub struct Token<'a> {
+    pub access_token: &'a str,
 }
 
-#[async_trait]
-impl<'r> Responder<'r, 'static> for Token {
-    fn respond_to(self, _request: &'r Request<'_>) -> rocket::response::Result<'static> {
-        Json(self).respond_to(_request)
-    }
-}
+impl_responder_json_for!(Token<'a>);
 
-impl Serialize for Token {
+impl<'a> Serialize for Token<'a> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
         where
             S: serde::Serializer {

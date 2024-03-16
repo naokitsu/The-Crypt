@@ -3,6 +3,10 @@ mod channel;
 mod message;
 mod member;
 mod channel_ban;
+mod login_request;
+mod register_request;
+mod token;
+mod uuid;
 
 trait Model {
     type Patch;
@@ -20,7 +24,7 @@ macro_rules! impl_from_data_json_for {
         impl<'r> rocket::data::FromData<'r> for $struct_name {
             type Error = rocket::serde::json::Error<'r>;
 
-            async fn from_data(req: &'r Request<'_>, data: Data<'r>) -> Outcome<'r, Self> {
+            async fn from_data(req: &'r rocket::Request<'_>, data: rocket::data::Data<'r>) -> rocket::data::Outcome<'r, Self> {
                 use rocket::serde::json::Json;
                 Json::from_data(req, data).await.map(|json: Json<Self>| json.into_inner())
             }
@@ -32,7 +36,7 @@ macro_rules! impl_from_data_json_for {
         impl<'r> rocket::data::FromData<'r> for $struct_name<'r> {
             type Error = rocket::serde::json::Error<'r>;
 
-            async fn from_data(req: &'r Request<'_>, data: Data<'r>) -> Outcome<'r, Self> {
+            async fn from_data(req: &'r rocket::Request<'_>, data: rocket::data::Data<'r>) -> rocket::data::Outcome<'r, Self> {
                 use rocket::serde::json::Json;
                 Json::from_data(req, data).await.map(|json: Json<Self>| json.into_inner())
             }

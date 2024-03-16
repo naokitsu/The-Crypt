@@ -1,6 +1,4 @@
 use diesel::AsChangeset;
-use rocket::{Data, Request};
-use rocket::data::Outcome;
 use rocket::serde::{Deserialize, Serialize};
 
 use crate::impl_from_data_json_for;
@@ -11,7 +9,7 @@ use crate::models::member::role::MemberRole;
 #[diesel(check_for_backend(diesel::pg::Pg))]
 #[serde(crate = "rocket::serde")]
 pub struct Patch {
-    pub role: Option<MemberRole>
+    pub role: Option<MemberRole>,
 }
 
 impl_from_data_json_for!(Patch);

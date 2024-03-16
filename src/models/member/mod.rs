@@ -1,5 +1,3 @@
-use rocket::{Data, Request};
-use rocket::data::Outcome;
 use rocket::serde::{Deserialize, Serialize};
 use rocket_db_pools::diesel::Queryable;
 

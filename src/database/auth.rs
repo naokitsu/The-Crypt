@@ -2,7 +2,7 @@ use diesel::result::Error;
 
 use crate::database::Db;
 use crate::database::token::Database;
-use crate::models::{LoginError, RegisterError, Token, };
+use crate::models::{LoginError, RegisterError, Token};
 
 pub(crate) trait AuthDatabase<T: super::token::Database = Self> {
     async fn login(&mut self, login: &str, password: &str) -> Result<Token, LoginError>;
@@ -23,7 +23,6 @@ impl From<TokenGenerateError> for LoginError {
         match value {
             TokenGenerateError::InternalServerError =>
                 LoginError::InternalServerError,
-
         }
     }
 }
@@ -65,7 +64,7 @@ impl AuthDatabase for rocket_db_pools::Connection<Db> {
 
         if db_key == key {
             // Todo It all should not look like this, i hope lyly's verification will go there one day
-            Ok(Token{access_token:login.to_string()})
+            Ok(Token { access_token: login.to_string() })
         } else {
             Err(LoginError::Unauthorized)
         }
@@ -96,7 +95,7 @@ impl AuthDatabase for rocket_db_pools::Connection<Db> {
         self.insert_session(db_id, key, nonce)
             .await
             .map_err(|_| RegisterError::InternalServerError)?;
-        Ok(Token{access_token:login.to_string()})
+        Ok(Token { access_token: login.to_string() })
     }
 }
 
