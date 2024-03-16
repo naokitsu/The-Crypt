@@ -6,7 +6,7 @@ use crate::database::Db;
 use crate::models;
 use crate::models::{Channel, ChannelError, Member, MemberInsert, MemberPatch, Message, User, UserRole};
 
-#[get("/channels/<id>")]
+#[get("/channel/<id>")]
 pub async fn get_channel_by_id(id: models::UUIDWrapper, user: User, mut db: Connection<Db>) -> Result<Channel, ChannelError> {
     let _ = db.get_member(id.into(), user.id)
         .await
@@ -23,7 +23,7 @@ pub async fn get_channel_by_id(id: models::UUIDWrapper, user: User, mut db: Conn
         })
 }
 
-#[patch("/channels/<id>", format = "json", data = "<patch>")]
+#[patch("/channel/<id>", format = "json", data = "<patch>")]
 pub async fn patch_channel_by_id(id: models::UUIDWrapper, user: User, patch: models::ChannelPatch, mut db: Connection<Db>) -> Result<Channel, ChannelError> {
     db.get_member(id.into(), user.id)
         .await
@@ -40,7 +40,7 @@ pub async fn patch_channel_by_id(id: models::UUIDWrapper, user: User, patch: mod
         })
 }
 
-#[delete("/channels/<id>")]
+#[delete("/channel/<id>")]
 pub async fn remove_channel_by_id(id: models::UUIDWrapper, user: User, mut db: Connection<Db>) -> Result<Channel, ChannelError> {
     db.get_member(id.into(), user.id)
         .await
@@ -57,7 +57,7 @@ pub async fn remove_channel_by_id(id: models::UUIDWrapper, user: User, mut db: C
         })
 }
 
-#[post("/channels", format = "json", data = "<channel>")]
+#[post("/channel", format = "json", data = "<channel>")]
 pub async fn create_channel(channel: models::ChannelInsert, user: User, mut db: Connection<Db>) -> Result<Channel, ChannelError> {
     let new_channel = db.insert_channel(channel)
         .await
@@ -75,7 +75,7 @@ pub async fn create_channel(channel: models::ChannelInsert, user: User, mut db: 
     Ok(new_channel)
 }
 
-#[get("/channels/<id>/members")]
+#[get("/channel/<id>/members")]
 pub async fn get_channel_members(id: models::UUIDWrapper, user: User, mut db: Connection<Db>) -> Result<Json<Vec<Member>>, ChannelError> {
     db.get_member(id.into(), user.id)
         .await
@@ -93,7 +93,7 @@ pub async fn get_channel_members(id: models::UUIDWrapper, user: User, mut db: Co
         .map(Json)
 }
 
-#[get("/channels/<channel_id>/members/<user_id>")]
+#[get("/channel/<channel_id>/members/<user_id>")]
 pub async fn get_channel_member(channel_id: models::UUIDWrapper, user_id: models::UUIDWrapper, user: User, mut db: Connection<Db>) -> Result<Member, ChannelError> {
     db.get_member(channel_id.into(), user.id)
         .await
@@ -110,7 +110,7 @@ pub async fn get_channel_member(channel_id: models::UUIDWrapper, user_id: models
         })
 }
 
-#[post("/channels/<channel_id>/members", format = "json", data = "<member>")]
+#[post("/channel/<channel_id>/members", format = "json", data = "<member>")]
 pub async fn add_channel_member(channel_id: models::UUIDWrapper, member: MemberInsert, user: User, mut db: Connection<Db>) -> Result<Member, ChannelError> {
     let myself = db.get_member(channel_id.into(), user.id)
         .await
@@ -131,7 +131,7 @@ pub async fn add_channel_member(channel_id: models::UUIDWrapper, member: MemberI
         })
 }
 
-#[patch("/channels/<channel_id>/members/<user_id>", format = "json", data = "<member>")]
+#[patch("/channel/<channel_id>/members/<user_id>", format = "json", data = "<member>")]
 pub async fn update_channel_member(channel_id: models::UUIDWrapper, user_id: models::UUIDWrapper, member: MemberPatch, user: User, mut db: Connection<Db>) -> Result<Member, ChannelError> {
     let myself = db.get_member(channel_id.into(), user.id)
         .await
@@ -150,7 +150,7 @@ pub async fn update_channel_member(channel_id: models::UUIDWrapper, user_id: mod
         })
 }
 
-#[delete("/channels/<channel_id>/members/<user_id>")]
+#[delete("/channel/<channel_id>/members/<user_id>")]
 pub async fn remove_channel_member(channel_id: models::UUIDWrapper, user_id: models::UUIDWrapper, user: User, mut db: Connection<Db>) -> Result<Member, ChannelError> {
     db.get_member(channel_id.into(), user.id)
         .await
@@ -168,7 +168,7 @@ pub async fn remove_channel_member(channel_id: models::UUIDWrapper, user_id: mod
 }
 
 
-#[get("/channels/<id>/messages")]
+#[get("/channel/<id>/messages")]
 pub async fn get_channel_messages(id: models::UUIDWrapper, user: User, mut db: Connection<Db>) -> Result<Json<Vec<Message>>, ChannelError> {
     db.get_member(id.into(), user.id)
         .await
@@ -186,7 +186,7 @@ pub async fn get_channel_messages(id: models::UUIDWrapper, user: User, mut db: C
         .map(Json)
 }
 
-#[get("/channels/<channel_id>/messages/<message_id>")]
+#[get("/channel/<channel_id>/messages/<message_id>")]
 pub async fn get_channel_message(channel_id: models::UUIDWrapper, message_id: models::UUIDWrapper, user: User, mut db: Connection<Db>) -> Result<Message, ChannelError> {
     db.get_member(channel_id.into(), user.id)
         .await
@@ -203,7 +203,7 @@ pub async fn get_channel_message(channel_id: models::UUIDWrapper, message_id: mo
         })
 }
 
-#[post("/channels/<channel_id>/messages", format = "json", data = "<message>")]
+#[post("/channel/<channel_id>/messages", format = "json", data = "<message>")]
 pub async fn create_channel_message(channel_id: models::UUIDWrapper, message: models::MessageInsert, user: User, mut db: Connection<Db>) -> Result<Message, ChannelError> {
     db.get_member(channel_id.into(), user.id)
         .await
