@@ -1,8 +1,8 @@
 use diesel::result::Error;
 use rocket_db_pools::diesel::prelude::*;
+
 use crate::{models, schema};
 use crate::schema::channels;
-
 
 pub(crate) enum DataRetrievalError {
     NotFound,

@@ -2,7 +2,6 @@ use diesel::Insertable;
 use rocket::{Data, Request};
 use rocket::data::Outcome;
 use rocket::serde::{Deserialize, Serialize};
-use crate::models::user::User;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Insertable)]
 #[diesel(table_name = crate::schema::users)]

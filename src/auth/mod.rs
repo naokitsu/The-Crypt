@@ -1,7 +1,6 @@
-
 use std::fmt::Display;
-use rocket::http::uri::Origin;
 
+use rocket::http::uri::Origin;
 
 pub trait AuthService {
     fn mount_auth_service<'a, B>(self, base: B) -> Self

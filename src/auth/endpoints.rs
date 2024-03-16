@@ -1,8 +1,8 @@
 use rocket::serde::json::Json;
 use rocket_db_pools::Connection;
-use crate::database::{Db, AuthDatabase};
-use crate::models;
 
+use crate::database::{AuthDatabase, Db};
+use crate::models;
 
 #[post("/login", format = "json", data = "<login_request>")]
 pub async fn login(login_request: Json<models::LoginRequest<'_>>, mut db: Connection<Db>) -> Result<models::Token, models::LoginError> {

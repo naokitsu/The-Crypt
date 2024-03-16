@@ -2,7 +2,7 @@ use rocket::{Data, Request};
 use rocket::data::Outcome;
 use rocket::serde::{Deserialize, Serialize};
 use serde::Deserializer;
-use crate::models::user::insert::Insert;
+
 use crate::models::user::User;
 
 #[derive(Debug, Clone, PartialEq, Serialize)]

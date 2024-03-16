@@ -1,7 +1,8 @@
 use diesel::result::Error;
-use crate::database::{Db};
+
+use crate::database::Db;
 use crate::database::token::Database;
-use crate::models::{LoginError, RegisterError, Token,};
+use crate::models::{LoginError, RegisterError, Token, };
 
 pub(crate) trait AuthDatabase<T: super::token::Database = Self> {
     async fn login(&mut self, login: &str, password: &str) -> Result<Token, LoginError>;
@@ -41,7 +42,7 @@ impl From<TokenVerificationError> for LoginError {
 impl AuthDatabase for rocket_db_pools::Connection<Db> {
     async fn login(&mut self, login: &str, _password: &str) -> Result<Token, LoginError> {
         use rocket_db_pools::diesel::prelude::*;
-        use crate::schema::{users};
+        use crate::schema::users;
 
         let db_id = users::table
             .select(users::id)
@@ -72,7 +73,7 @@ impl AuthDatabase for rocket_db_pools::Connection<Db> {
 
     async fn register(&mut self, login: &str, _password: &str) -> Result<Token, RegisterError> {
         use rocket_db_pools::diesel::prelude::*;
-        use crate::schema::{users};
+        use crate::schema::users;
 
         let db_id = rocket_db_pools::diesel::insert_into(users::table)
             .values((

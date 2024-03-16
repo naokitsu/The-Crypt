@@ -1,4 +1,5 @@
 use std::str::FromStr;
+
 use rocket::request::FromParam;
 
 // uuid::Uuid wrapper because i can't implement traits for the uuid::Uuid

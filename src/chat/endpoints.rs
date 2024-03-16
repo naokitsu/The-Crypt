@@ -1,10 +1,10 @@
 use rocket::serde::json::Json;
 use rocket_db_pools::Connection;
-use crate::database::{Db};
-use crate::models;
-use crate::models::{Channel, ChannelError, Member, User, UserRole, MemberInsert, MemberPatch, Message};
-use crate::database::channels::{Database, DataInsertionError, DataRemovalError, DataRetrievalError, DataSetError};
 
+use crate::database::channels::{Database, DataInsertionError, DataRemovalError, DataRetrievalError, DataSetError};
+use crate::database::Db;
+use crate::models;
+use crate::models::{Channel, ChannelError, Member, MemberInsert, MemberPatch, Message, User, UserRole};
 
 #[get("/channels/<id>")]
 pub async fn get_channel_by_id(id: models::UUIDWrapper, user: User, mut db: Connection<Db>) -> Result<Channel, ChannelError> {

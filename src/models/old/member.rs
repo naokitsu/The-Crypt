@@ -1,17 +1,17 @@
 use std::io::Write;
-use rocket_db_pools::diesel::{AsChangeset, Insertable, Queryable};
-use rocket_db_pools::diesel::deserialize::{FromSql, FromSqlRow};
-use rocket::data::{FromData, Outcome};
+
 use rocket::{Data, Request};
+use rocket::data::{FromData, Outcome};
 use rocket::response::Responder;
 use rocket::serde::{Deserialize, Serialize};
 use rocket::serde::json::Json;
 use rocket_contrib::databases::diesel::{deserialize, not_none, SqlType};
 use rocket_contrib::databases::diesel::pg::Pg;
+use rocket_db_pools::diesel::{AsChangeset, Insertable, Queryable};
+use rocket_db_pools::diesel::deserialize::{FromSql, FromSqlRow};
 use rocket_db_pools::diesel::serialize::{self, IsNull, Output, ToSql};
 
 use crate::schema;
-
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Queryable)]
 #[diesel(table_name = crate::schema::users)]

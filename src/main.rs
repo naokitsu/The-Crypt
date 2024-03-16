@@ -1,9 +1,8 @@
-#[macro_use] extern crate rocket;
 extern crate core;
+#[macro_use] extern crate rocket;
 
 use crate::auth::AuthService;
 use crate::chat::ChatService;
-
 
 mod auth;
 

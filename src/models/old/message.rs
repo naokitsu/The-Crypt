@@ -1,9 +1,10 @@
 use diesel::{AsChangeset, Insertable, Queryable};
-use rocket::data::{FromData, Outcome};
 use rocket::{Data, Request};
+use rocket::data::{FromData, Outcome};
 use rocket::response::Responder;
 use rocket::serde::{Deserialize, Serialize};
 use rocket::serde::json::Json;
+
 use crate::models::Channel;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Queryable, Insertable)]

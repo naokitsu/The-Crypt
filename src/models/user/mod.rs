@@ -1,7 +1,7 @@
 use rocket::{Data, Request};
 use rocket::data::Outcome;
-use rocket_db_pools::diesel::{AsChangeset, Insertable, Queryable};
 use rocket::serde::{Deserialize, Serialize};
+use rocket_db_pools::diesel::{AsChangeset, Insertable, Queryable};
 
 use crate::models::Model;
 

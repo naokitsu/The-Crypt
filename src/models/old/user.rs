@@ -1,16 +1,16 @@
 use diesel::Queryable;
-use rocket::http::{Status};
+use rocket::http::Status;
 use rocket::Request;
 use rocket::request::{FromRequest, Outcome};
 use rocket::response::Responder;
 use rocket::serde::{Deserialize, Serialize};
-use rocket_db_pools::Connection;
-use crate::database::{Db};
 use rocket::serde::json::Json;
+use rocket_db_pools::Connection;
 use serde::ser::SerializeStruct;
-use crate::models::LoginError;
-use crate::database::token::Database;
 
+use crate::database::Db;
+use crate::database::token::Database;
+use crate::models::LoginError;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Queryable)]
 #[diesel(table_name = crate::schema::users)]
@@ -84,7 +84,7 @@ impl<'r> FromRequest<'r> for User {
 
                 // ------ It is so cursed ---------
                 use rocket_db_pools::diesel::prelude::*;
-                use crate::schema::{users};
+                use crate::schema::users;
 
                 let user = users::table
                     .filter(users::username.eq(token))

@@ -1,7 +1,6 @@
-
 use std::fmt::Display;
-use rocket::http::uri::Origin;
 
+use rocket::http::uri::Origin;
 
 pub trait ChatService {
     fn mount_chat_service<'a, B>(self, base: B) -> Self
