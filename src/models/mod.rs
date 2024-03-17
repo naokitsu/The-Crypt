@@ -17,6 +17,37 @@ trait Model {
     fn to_insert(&self) -> Self::Insert;
 }
 
+// --- exports ---
+
+pub use user::User;
+pub use user::insert::Insert as UserInsert;
+pub use user::patch::Patch as UserPatch;
+pub use user::users::Users;
+
+pub use channel::Channel;
+pub use channel::insert::Insert as ChannelInsert;
+pub use channel::patch::Patch as ChannelPatch;
+pub use channel::channels::Channels;
+
+pub use message::Message;
+pub use message::insert::Insert as MessageInsert;
+pub use message::patch::Patch as MessagePatch;
+pub use message::messages::Messages;
+
+pub use member::Member;
+pub use member::insert::Insert as MemberInsert;
+pub use member::patch::Patch as MemberPatch;
+pub use member::members::Members;
+
+pub use channel_ban::ChannelBan;
+pub use channel_ban::channel_bans::ChannelBans;
+
+pub use login_request::LoginRequest;
+pub use register_request::RegisterRequest;
+pub use token::Token;
+pub use uuid::UUIDWrapper;
+
+// --- Macros---
 #[macro_export]
 macro_rules! impl_from_data_json_for {
         ($struct_name:ident) => {

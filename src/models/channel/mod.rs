@@ -4,9 +4,9 @@ use rocket_db_pools::diesel::Queryable;
 use crate::{impl_from_data_json_for, impl_responder_json_for};
 use crate::models::Model;
 
-mod channels;
-mod patch;
-mod insert;
+pub(crate) mod channels;
+pub(crate) mod patch;
+pub(crate) mod insert;
 
 impl<'a> Model for Channel<'a> {
     type Patch = patch::Patch<'a>;
@@ -30,7 +30,7 @@ impl<'a> Model for Channel<'a> {
 #[diesel(table_name = crate::schema::channels)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 #[serde(crate = "rocket::serde")]
-struct Channel<'a> {
+pub struct Channel<'a> {
     pub id: uuid::Uuid,
     pub name: &'a str,
 }

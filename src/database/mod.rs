@@ -1,9 +1,6 @@
-pub(crate) use auth::AuthDatabase;
-use rocket_db_pools::{Database, diesel};
+pub(crate) mod auth;
 
-mod auth;
-pub(crate) mod token;
-pub(crate) mod channels;
+use rocket_db_pools::{Database, diesel};
 
 #[derive(Database)]
 #[database("chat_app")]

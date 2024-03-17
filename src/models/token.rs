@@ -5,13 +5,13 @@ use serde::Serialize;
 use crate::impl_responder_json_for;
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct Token<'a> {
-    pub access_token: &'a str,
+pub struct Token {
+    pub access_token: String,
 }
 
-impl_responder_json_for!(Token<'a>);
+impl_responder_json_for!(Token);
 
-impl<'a> Serialize for Token<'a> {
+impl<'a> Serialize for Token {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
         where
             S: serde::Serializer {

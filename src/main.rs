@@ -2,19 +2,22 @@ extern crate core;
 #[macro_use]
 extern crate rocket;
 
-use crate::auth::AuthService;
-use crate::chat::ChatService;
+use crate::database::PostgreSQLDatabase;
+use crate::endpoints::Auth;
 
-mod auth;
 
 pub mod schema;
 mod models;
 mod chat;
+mod endpoints;
+mod database;
 
 #[launch]
 fn rocket() -> _ {
     rocket::build()
-        .mount_auth_service("/auth")
-        .mount_chat_service("/chat")
+        .attach_database()
+        .mount_auth("/auth")
+//        .mount_auth_service("/auth")
+//        .mount_chat_service("/chat")
 }
 

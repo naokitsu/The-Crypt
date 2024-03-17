@@ -4,7 +4,7 @@ use rocket_db_pools::diesel::Queryable;
 use crate::{impl_from_data_json_for, impl_responder_json_for};
 use crate::models::Model;
 
-mod channel_bans;
+pub(crate) mod channel_bans;
 
 impl Model for ChannelBan {
     type Patch = ();
@@ -24,7 +24,7 @@ impl Model for ChannelBan {
 #[diesel(table_name = crate::schema::bans)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 #[serde(crate = "rocket::serde")]
-struct ChannelBan {
+pub struct ChannelBan {
     user_id: uuid::Uuid,
     channel_id: uuid::Uuid,
 }

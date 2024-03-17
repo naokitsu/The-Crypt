@@ -43,6 +43,13 @@ diesel::table! {
 }
 
 diesel::table! {
+    secrets (user_id) {
+        user_id -> Uuid,
+        salted_hash -> Bytea,
+    }
+}
+
+diesel::table! {
     users (id) {
         id -> Uuid,
         #[max_length = 32]
@@ -57,11 +64,13 @@ diesel::joinable!(members -> channels (channel_id));
 diesel::joinable!(members -> users (user_id));
 diesel::joinable!(messages -> channels (channel_id));
 diesel::joinable!(messages -> users (user_id));
+diesel::joinable!(secrets -> users (user_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
     bans,
     channels,
     members,
     messages,
+    secrets,
     users,
 );

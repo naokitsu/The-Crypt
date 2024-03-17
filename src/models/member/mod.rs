@@ -5,10 +5,10 @@ use crate::{impl_from_data_json_for, impl_responder_json_for};
 use crate::models::member::role::MemberRole;
 use crate::models::Model;
 
-mod members;
-mod patch;
-mod insert;
-mod role;
+pub(crate) mod members;
+pub(crate) mod patch;
+pub(crate) mod insert;
+pub(crate) mod role;
 
 impl Model for Member {
     type Patch = patch::Patch;
@@ -32,7 +32,7 @@ impl Model for Member {
 #[diesel(table_name = crate::schema::members)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 #[serde(crate = "rocket::serde")]
-struct Member {
+pub struct Member {
     pub user_id: uuid::Uuid,
     pub channel_id: uuid::Uuid,
     pub role: MemberRole,

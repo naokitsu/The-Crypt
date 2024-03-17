@@ -4,9 +4,9 @@ use rocket_db_pools::diesel::Queryable;
 use crate::{impl_from_data_json_for, impl_responder_json_for};
 use crate::models::Model;
 
-mod users;
-mod patch;
-mod insert;
+pub(crate) mod users;
+pub(crate) mod patch;
+pub(crate) mod insert;
 
 impl<'a> Model for User<'a> {
     type Patch = patch::Patch<'a>;
@@ -30,7 +30,7 @@ impl<'a> Model for User<'a> {
 #[diesel(table_name = crate::schema::users)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 #[serde(crate = "rocket::serde")]
-struct User<'a> {
+pub struct User<'a> {
     pub id: uuid::Uuid,
     pub name: &'a str,
     pub is_admin: bool,
