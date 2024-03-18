@@ -7,6 +7,7 @@ mod login_request;
 mod register_request;
 mod token;
 mod uuid;
+mod error;
 
 trait Model {
     type Patch;
@@ -46,6 +47,10 @@ pub use login_request::LoginRequest;
 pub use register_request::RegisterRequest;
 pub use token::Token;
 pub use uuid::UUIDWrapper;
+
+pub use error::Error;
+pub use error::LoginError;
+pub use error::RegisterError;
 
 // --- Macros---
 #[macro_export]

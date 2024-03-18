@@ -1,16 +1,16 @@
 use diesel::result::Error;
 use rocket::serde::{Deserialize, Serialize};
 use crate::database::Db;
-use crate::models::Token;
+use crate::models::{LoginError, RegisterError, Token};
 
 pub(crate) trait AuthDatabase {
-    async fn login(&mut self, login: &str, password: &str) -> Result<Token, ()>;
-    async fn register(&mut self, login: &str, password: &str) -> Result<(), ()>;
+    async fn login(&mut self, login: &str, password: &str) -> Result<Token, LoginError>;
+    async fn register(&mut self, login: &str, password: &str) -> Result<(), RegisterError>;
 }
 
 
 impl AuthDatabase for rocket_db_pools::Connection<Db> {
-    async fn login(&mut self, login: &str, password: &str) -> Result<Token, ()> {
+    async fn login(&mut self, login: &str, password: &str) -> Result<Token, LoginError> {
         use rocket_db_pools::diesel::prelude::*;
         use crate::schema::{users, secrets};
 
@@ -20,26 +20,31 @@ impl AuthDatabase for rocket_db_pools::Connection<Db> {
             .filter(users::name.eq(login))
             .first::<(Vec<u8>, uuid::Uuid)>(self)
             .await
-            .map_err(|_| ())?;
+            .map_err(|err| match err {
+                Error::NotFound => LoginError::Unauthorized,
+                _ => LoginError::InternalServerError,
+            })?;
 
-        if user_salted_hash.len() <= 16 { return Err(()) }
+        if user_salted_hash.len() <= 16 { return Err(LoginError::InternalServerError) }
         let (salt, hash) = user_salted_hash
             .split_at(16);
 
-        if verify_password(salt, password.as_bytes(), hash).map_err(|_| ())? {
+        if verify_password(salt, password.as_bytes(), hash).map_err(|_| LoginError::InternalServerError)? {
             generate_token(user_id)
                 .map(|access_token| Token {access_token})
-                .map_err(|_| ())
+                .map_err(|_| LoginError::InternalServerError)
         } else {
-            Err(())
+            Err(LoginError::Unauthorized)
         }
     }
 
-    async fn register(&mut self, login: &str, password: &str) -> Result<(), ()> {
+    async fn register(&mut self, login: &str, password: &str) -> Result<(), RegisterError> {
         use rocket_db_pools::diesel::prelude::*;
         use crate::schema::{users, secrets};
 
-        let salt_hash = hash_password(password.as_bytes()).map_err(|_| ())?;;
+        let salt_hash = hash_password(password.as_bytes()).map_err(|_| RegisterError::InternalServerError)?;
+
+        println!("{:?}", (login, password, &salt_hash));
 
         let user_uuid = diesel::insert_into(users::table)
             .values((
@@ -48,7 +53,10 @@ impl AuthDatabase for rocket_db_pools::Connection<Db> {
             .returning(users::id)
             .get_result::<uuid::Uuid>(self)
             .await
-            .map_err(|_| ())?;;
+            .map_err(|err| match err {
+                Error::DatabaseError(diesel::result::DatabaseErrorKind::UniqueViolation, _) => RegisterError::Conflict,
+                _ => RegisterError::InternalServerError
+            })?;;
 
         diesel::insert_into(secrets::table)
             .values((
@@ -57,7 +65,7 @@ impl AuthDatabase for rocket_db_pools::Connection<Db> {
             ))
             .execute(self)
             .await
-            .map_err(|_| ())?;
+            .map_err(|_| RegisterError::InternalServerError)?;
         Ok(())
     }
 }
