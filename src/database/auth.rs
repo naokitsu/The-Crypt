@@ -1,7 +1,10 @@
 use diesel::result::Error;
 use rocket::serde::{Deserialize, Serialize};
 use crate::database::Db;
-use crate::models::{LoginError, RegisterError, Token};
+use crate::models::{AuthClaims, LoginError, Permissions, RegisterError, Token};
+
+const JWT_SECRET: &[u8] = b"Szechuan Sauce Recipe";
+
 
 pub(crate) trait AuthDatabase {
     async fn login(&mut self, login: &str, password: &str) -> Result<Token, LoginError>;
@@ -44,8 +47,6 @@ impl AuthDatabase for rocket_db_pools::Connection<Db> {
 
         let salt_hash = hash_password(password.as_bytes()).map_err(|_| RegisterError::InternalServerError)?;
 
-        println!("{:?}", (login, password, &salt_hash));
-
         let user_uuid = diesel::insert_into(users::table)
             .values((
                 users::name.eq(login),
@@ -70,14 +71,14 @@ impl AuthDatabase for rocket_db_pools::Connection<Db> {
     }
 }
 
-fn verify_password(salt: &[u8], password: &[u8], hash: &[u8]) -> Result<bool, openssl::error::ErrorStack> {
+pub(crate) fn verify_password(salt: &[u8], password: &[u8], hash: &[u8]) -> Result<bool, openssl::error::ErrorStack> {
     let salt_password = [salt, password].concat();
     let request_hash = openssl::hash::hash(openssl::hash::MessageDigest::sha256(), salt_password.as_slice())?;
 
     Ok(request_hash.as_ref() == hash)
 }
 
-fn hash_password(password: &[u8]) -> Result<Vec<u8>, openssl::error::ErrorStack> {
+pub(crate) fn hash_password(password: &[u8]) -> Result<Vec<u8>, openssl::error::ErrorStack> {
     let mut salt = [0; 16];
     openssl::rand::rand_bytes(&mut salt)?;
 
@@ -89,23 +90,33 @@ fn hash_password(password: &[u8]) -> Result<Vec<u8>, openssl::error::ErrorStack>
     Ok(salted_hash)
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-struct Claims {
-    sub: String,
-    exp: usize,
-}
+
 
 pub(crate) fn generate_token(user_id: uuid::Uuid) -> Result<String, ()> {
     use jsonwebtoken::{Algorithm, encode, Header};
-    const JWT_SECRET: &[u8] = b"Szechuan Sauce Recipe";
 
     let expiration = chrono::Utc::now()
         .checked_add_signed(chrono::Duration::seconds(3600))
         .expect("") // TODO
         .timestamp();
 
-    let claims = Claims {
+    let claims = AuthClaims {
         sub: user_id.to_string(),
+        perms: Permissions::new(
+            false,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+
+        ),
         exp: expiration as usize,
     };
     let header = Header::new(Algorithm::HS512);
@@ -113,4 +124,21 @@ pub(crate) fn generate_token(user_id: uuid::Uuid) -> Result<String, ()> {
         .map_err(|_| ())?;
 
     Ok(jwt)
+}
+
+pub(crate) fn verify_login_token(token: &str) -> Result<AuthClaims, ()> {
+    use jsonwebtoken::{Algorithm, decode, Validation};
+
+    let now = chrono::Utc::now();
+
+    let claims = decode::<AuthClaims>(token, &jsonwebtoken::DecodingKey::from_secret(JWT_SECRET), &Validation::new(Algorithm::HS512))
+        .map_err(|_| ()).unwrap();
+
+    if now.timestamp() as usize > claims.claims.exp {
+        Err(())
+    } else {
+        Ok(claims.claims)
+    }
+
+
 }
